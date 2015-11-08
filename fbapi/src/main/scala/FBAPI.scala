@@ -5,8 +5,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.duration._
 
-object Boot {
-  def main(args: Array[String]) = {
+object FBAPI {
+  def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem("fbapi")
     val service = system.actorOf(Props[API], "api-service")
 
