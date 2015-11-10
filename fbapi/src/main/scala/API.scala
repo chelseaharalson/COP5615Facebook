@@ -4,6 +4,8 @@ import spray.http._
 import MediaTypes._
 //import spray.httpx.SprayJsonSupport._
 
+import PersonJsonSupport._
+
 // simple actor that handles the routes.
 class API extends Actor with HttpService {
 
@@ -31,6 +33,13 @@ class API extends Actor with HttpService {
               </body>
             </html>
           }
+        }
+      }
+    } ~
+    path("create") {
+      post {
+        entity(as[UserEnt]) { user =>
+          complete { s"Hello ${user.first_name} ${user.last_name}" }
         }
       }
     }

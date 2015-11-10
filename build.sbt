@@ -9,6 +9,7 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-actor" % "2.3.11",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "io.spray"            %%  "spray-can"     % sprayV,
+    "io.spray"            %%  "spray-json"    % "1.3.2",
     "io.spray"            %%  "spray-routing" % sprayV,
     "io.spray"            %%  "spray-testkit" % sprayV  % "test",
     "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test"
