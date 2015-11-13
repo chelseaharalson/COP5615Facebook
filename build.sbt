@@ -12,7 +12,8 @@ lazy val commonSettings = Seq(
     "io.spray"            %%  "spray-json"    % "1.3.2",
     "io.spray"            %%  "spray-routing" % sprayV,
     "io.spray"            %%  "spray-testkit" % sprayV  % "test",
-    "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test"
+    "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test",
+    "com.github.nscala-time" %% "nscala-time" % "2.4.0"
   )
 )
 

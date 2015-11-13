@@ -1,5 +1,11 @@
+import akka.actor._
+
 object FBClient {
   def main(args: Array[String]): Unit = {
-    println("Hello from Facebook Client!")
+    val numOfUsers: Integer = 10
+    val system = ActorSystem("Facebook-System")
+    val master = system.actorOf(Props(new Master()), "master")
+    master ! CreateUsers
+    //println("Hello from Facebook Client!")
   }
 }
