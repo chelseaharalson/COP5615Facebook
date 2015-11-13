@@ -1,6 +1,3 @@
-/**
- * Created by Root on 11/10/2015.
- */
-class Identifier {
-
+class Identifier(id : String) {
+  def this(id : Int) = this(id.toString)
 }
