@@ -1,7 +1,4 @@
-
-object Gender {
-  sealed trait EnumVal
-  case object Male extends EnumVal
-  case object Female extends EnumVal
-  case object Unspecified extends EnumVal
+object Gender extends Enumeration {
+  type EnumVal = Value
+  val Male, Female, Unspecified = Value
 }

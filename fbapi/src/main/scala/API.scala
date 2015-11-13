@@ -1,8 +1,6 @@
 import akka.actor.Actor
 import spray.routing._
 import spray.http._
-import MediaTypes._
-//import spray.httpx.SprayJsonSupport._
 
 import PersonJsonSupport._
 
@@ -21,25 +19,19 @@ class API extends Actor with HttpService {
   // handles the other path, we could also define these in separate files
   // This is just a simple route to explain the concept
   val testRoute = {
-    path("test") {
-      get {
-        // respond with text/html.
-        respondWithMediaType(`text/html`) {
+    pathPrefix("user") {
+      path("test") {
+        get {
           complete {
-            // respond with a set of HTML elements
-            <html>
-              <body>
-                <h1>Path 2</h1>
-              </body>
-            </html>
+            new UserEnt
           }
         }
-      }
-    } ~
-    path("create") {
-      post {
-        entity(as[UserEnt]) { user =>
-          complete { s"Hello ${user.first_name} ${user.last_name}" }
+      } ~
+      path("create") {
+        post {
+          entity(as[UserEnt]) { user =>
+            complete { s"Hello ${user.first_name} ${user.last_name}" }
+          }
         }
       }
     }
