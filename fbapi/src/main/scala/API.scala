@@ -1,8 +1,10 @@
+import java.util.TimeZone
+
 import akka.actor.Actor
 import spray.routing._
 import spray.http._
 
-import PersonJsonSupport._
+import FacebookJsonSupport._
 
 // simple actor that handles the routes.
 class API extends Actor with HttpService {
@@ -39,8 +41,25 @@ class API extends Actor with HttpService {
         }
       } ~
       post {
-        entity(as[UserEnt]) { user =>
-          complete { s"Hello ${user.first_name} ${user.last_name}" }
+        // Receive a JSON entity that acts as a form
+        entity(as[UserCreateForm]) { user =>
+          complete {
+            // TODO: validate the user's form fields
+            new UserEnt(new Identifier(0),
+              first_name = user.first_name,
+              last_name = user.last_name,
+              birthday =  user.birthday,
+              gender = user.gender,
+              email = user.email,
+              about = user.about,
+              relationship_status = user.relationship_status,
+              interested_in = user.interested_in,
+              political = user.political,
+              tz = user.tz,
+              last_updated = DateTime.now,
+              status = ""
+            )
+          }
         }
       } ~
       get {

@@ -18,16 +18,22 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file(".")).
-  aggregate(fbapi, fbclient)
+  aggregate(fbapi, fbclient, common)
 
 lazy val fbapi = (project in file("fbapi")).
   settings(commonSettings: _*).
   settings(
     name := "fbapi"
-  )
+  ).dependsOn(common)
 
 lazy val fbclient = (project in file("fbclient")).
   settings(commonSettings: _*).
   settings(
     name := "fbclient"
+  ).dependsOn(common)
+
+lazy val common = (project in file("common")).
+  settings(commonSettings: _*).
+  settings(
+    name := "common"
   )
