@@ -3,6 +3,8 @@ import scala.util.Random
 import akka.actor._
 import com.github.nscala_time.time.Imports._
 import org.joda.time.Days
+import scala.io.Source
+import scala.collection.mutable.ArrayBuffer
 
 class UserActor(pFirstName: String, pLastName: String, pGender: String) extends Actor {
   var firstName: String = ""
@@ -16,7 +18,13 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
   var interestedIn: String = ""
   var political: String = ""
   var last_updated: DateTime = DateTime.now
-  //var tz: TimeZone
+  var tz: TimeZone = TimeZone.getDefault
+
+  val fileAbout = "TextFiles/About.txt"
+  var abouts = parseFile(fileAbout)
+
+  val fileStatus = "TextFiles/Status.txt"
+  var statuses = parseFile(fileStatus)
 
   firstName = pFirstName
   lastName = pLastName
@@ -26,9 +34,14 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
   relationshipStatus = generateRelationshipStatus
   political = generatePoliticalStatus
   interestedIn = generateInterestedIn(gender)
-  about = generateAbout(gender, interestedIn, relationshipStatus, political)
+  //about = generateAbout(gender, interestedIn, relationshipStatus, political)
+  about = generateAbout(abouts)
+  status = generateStatus(statuses)
 
-  println(firstName + " " + lastName + " " + gender + " " + about)
+  //println(firstName + " " + lastName + " " + gender + " " + about)
+
+  var s = generateCurlString(firstName, lastName, birthday, gender, email, about, relationshipStatus,
+  status, interestedIn, political, last_updated, tz)
 
   def receive = {
     case CreateUser => {
@@ -76,19 +89,19 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
     val p: Integer = Random.nextInt(100)
     var relStatus: String = ""
     if (p < 37) {
-      relStatus = "S"
+      relStatus = "Single"
     }
     else if (p < 68) {
-      relStatus = "M"
+      relStatus = "Married"
     }
     else if (p < 92) {
-      relStatus = "R"
+      relStatus = "Relationship"
     }
     else if (p < 95) {
-      relStatus = "E"
+      relStatus = "Engaged"
     }
     else {
-      relStatus = "C"
+      relStatus = "Complicated"
     }
     relStatus
   }
@@ -102,13 +115,13 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
     val p: Integer = Random.nextInt(100)
     var polStatus: String = ""
     if (p < 25) {
-      polStatus = "R"
+      polStatus = "Republican"
     }
     else if (p < 54) {
-      polStatus = "D"
+      polStatus = "Democrat"
     }
     else {
-      polStatus = "I"
+      polStatus = "Independent"
     }
     polStatus
   }
@@ -116,14 +129,14 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
   def generateInterestedIn(pGender: String): String = {
     val p: Integer = Random.nextInt(1000)
     var interestedIn: String = ""
-    if (pGender == "M") {
-      interestedIn = "F"
+    if (pGender == "Male") {
+      interestedIn = "Female"
     }
     else {
-      interestedIn = "M"
+      interestedIn = "Male"
     }
     if (p < 7) {
-      interestedIn = "B"
+      interestedIn = "Both"
     }
     else if (p < 24) {
       interestedIn = pGender
@@ -131,29 +144,63 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
     interestedIn
   }
 
-  def generateAbout(pGender: String, pInterestedIn: String, pRelStatus: String, pPolStatus: String): String = {
+  /*def generateAbout(pGender: String, pInterestedIn: String, pRelStatus: String, pPolStatus: String): String = {
     var about: String = ""
     var gender: String = ""
     var relStat: String = ""
     var intIn: String = ""
-    var polStat: String = ""
-    if (pGender == "F") gender = "woman"
-    if (pGender == "M") gender = "man"
-    if (pInterestedIn == "F") intIn = "women"
-    if (pInterestedIn == "M") intIn = "men"
-    if (pInterestedIn == "B") intIn = "women/men"
-    if (pRelStatus == "S") relStat = "single"
-    if (pRelStatus == "M") relStat = "married"
-    if (pRelStatus == "R") relStat = "in a relationship"
-    if (pRelStatus == "E") relStat = "engaged"
-    if (pRelStatus == "C") relStat = "it's complicated"
-    if (pPolStatus == "R") polStat = "Republican"
-    if (pPolStatus == "D") polStat = "Democrat"
-    if (pPolStatus == "I") polStat = "Independent"
+    if (pGender == "Female") gender = "woman"
+    if (pGender == "Male") gender = "man"
+    if (pInterestedIn == "Female") intIn = "women"
+    if (pInterestedIn == "Male") intIn = "men"
+    if (pInterestedIn == "Both") intIn = "women/men"
+    if (pRelStatus == "Single") relStat = "single"
+    if (pRelStatus == "Married") relStat = "married"
+    if (pRelStatus == "Relationship") relStat = "in a relationship"
+    if (pRelStatus == "Engaged") relStat = "engaged"
+    if (pRelStatus == "Complicated") relStat = "it's complicated"
 
     about = "I am a " + gender + " that is interested in " + intIn + ". I am currently " + relStat + " and my political " +
-      "affliation is " + polStat + "."
+      "affiliation is " + pPolStatus + "."
     about
+  }*/
+
+  def generateAbout(aboutArr: ArrayBuffer[String]) : String = {
+    var about: String = ""
+    val i: Integer = Random.nextInt(aboutArr.size)
+    about = aboutArr(i)
+    about
+  }
+
+  def generateStatus(statusArr: ArrayBuffer[String]) : String = {
+    var status: String = ""
+    val i: Integer = Random.nextInt(statusArr.size)
+    status = statusArr(i)
+    status
+  }
+
+  def generateCurlString(pFirstName: String, pLastName: String, pBirthday: DateTime,
+    pGender: String, pEmail: String, pAbout: String, pRelationshipStatus: String,
+    pStatus: String, pInterestedIn: String, pPolitical: String, pLastUpdated: DateTime, pTimeZone: TimeZone): String = {
+    var str: String = ""
+    str = "curl -H \"Content-Type: application/json\" -X POST -d '{ " +
+      "\"first_name\": \"" + pFirstName + "\", \"last_name\": \"" + pLastName + "\", " +
+      "\"birthday\": \"" + pBirthday.toString("yyyy-MM-dd'T'HH:mm:ss") + "\", \"gender\": \"" + pGender + "\", " +
+      "\"email\": \"" + pEmail + "\", \"about\": \"" + pAbout + "\", " +
+      "\"relationship_status\": \"" + pRelationshipStatus + "\", " +
+      "\"interested_in\": \"" + pInterestedIn + "\", \"political\": \"" + pPolitical + "\", " +
+      "\"tz\": \"" + pTimeZone.getID + "\", \"status\": \"" + pStatus +
+      "\" }' http://localhost:8080/user/UserCreateFormTest"
+    println(str)
+    str
+  }
+
+  def parseFile(fileName: String): ArrayBuffer[String] = {
+    var pfile = ArrayBuffer[String]()
+    for (line <- Source.fromFile(fileName).getLines()) {
+      pfile += line
+    }
+    pfile
   }
 
 }
