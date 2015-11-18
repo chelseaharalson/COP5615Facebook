@@ -1,8 +1,8 @@
 import java.util.TimeZone
-
-import spray.http.DateTime
+//import spray.http.DateTime
 import spray.httpx.SprayJsonSupport
 import spray.json._
+import com.github.nscala_time.time.Imports._
 
 object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object IdentifierJsonFormat extends JsonFormat[Identifier] {
@@ -15,16 +15,20 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   }
 
   implicit object DateTimeJsonFormat extends JsonFormat[DateTime] {
+    private val dateTimeFmt = org.joda.time.format.ISODateTimeFormat.dateTime
+
     def write(datetime: DateTime) = JsString(datetime.toString())
 
     def read(value: JsValue) = value match {
       case JsString(a) =>
-        val result = DateTime.fromIsoDateTimeString(a.toString)
+        dateTimeFmt.parseDateTime(a)
+        //val result = DateTime.from
+        //val result = DateTime.fromIsoDateTimeString(a.toString)
 
-        if(result.nonEmpty)
+        /*if(result.nonEmpty)
           result.get
         else
-          deserializationError("Invalid DateTime ISO")
+          deserializationError("Invalid DateTime ISO")*/
       case _ => deserializationError("DateTime string expected")
     }
   }
