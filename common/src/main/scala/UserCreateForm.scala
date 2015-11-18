@@ -1,6 +1,5 @@
 import java.util.TimeZone
-
-import spray.http.DateTime
+import com.github.nscala_time.time.Imports._
 
 case class UserCreateForm(first_name : String,
                    last_name : String,
