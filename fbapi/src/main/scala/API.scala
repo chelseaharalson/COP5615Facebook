@@ -6,6 +6,8 @@ import spray.routing._
 
 import FacebookJsonSupport._
 
+import scala.collection.mutable
+
 // simple actor that handles the routes.
 class API extends Actor with HttpService {
 
@@ -13,7 +15,9 @@ class API extends Actor with HttpService {
   // included from SJService
   def actorRefFactory = context
 
-  // we don't create a receive function ourselve, but use
+  var map = mutable.HashMap[Identifier, UserEnt]()
+
+  // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
   // one for us, based on the supplied routes.
   def receive = runRoute(testRoute)
@@ -40,30 +44,46 @@ class API extends Actor with HttpService {
           }
         }
       } ~
-      post {
-        // Receive a JSON entity that acts as a form
-        entity(as[UserCreateForm]) { user =>
+      ObjectID { id =>
+        get {
           complete {
-            // TODO: validate the user's form fields
-            new UserEnt(new Identifier(0),
-              first_name = user.first_name,
-              last_name = user.last_name,
-              birthday =  user.birthday,
-              gender = user.gender,
-              email = user.email,
-              about = user.about,
-              relationship_status = user.relationship_status,
-              interested_in = user.interested_in,
-              political = user.political,
-              tz = user.tz,
-              last_updated = DateTime.now,
-              status = ""
-            )
+            if(map.contains(new Identifier(id))) {
+              map{new Identifier(id)}
+            } else {
+              "Unknown ID"
+            }
           }
         }
       } ~
-      get {
-        TextResp("Yourself")
+      pathEndOrSingleSlash {
+        post {
+          // Receive a JSON entity that acts as a form
+          entity(as[UserCreateForm]) { user =>
+            complete {
+              val id = new Identifier(0)
+              // TODO: validate the user's form fields
+              val ent = new UserEnt(id,
+                first_name = user.first_name,
+                last_name = user.last_name,
+                birthday =  user.birthday,
+                gender = user.gender,
+                email = user.email,
+                about = user.about,
+                relationship_status = user.relationship_status,
+                interested_in = user.interested_in,
+                political = user.political,
+                tz = user.tz,
+                status = ""
+              )
+
+              map += (id -> ent)
+              ent
+            }
+          }
+        } ~
+        get {
+          TextResp("Yourself")
+        }
       }
     } ~
     pathPrefix("comment") {
