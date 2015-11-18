@@ -1,9 +1,15 @@
 import spray.routing.PathMatchers._
 
 class Identifier(id : String) {
-  def this(id : Int) = this(id.toString)
+  def this(id : Long) = this(id.toString)
 
-  override def toString() = id
+  override def toString = id
+
+  override def equals(that : Any) = that match {
+    case that: Identifier => this.hashCode == that.hashCode
+    case _ => false
+  }
+  override def hashCode = id.hashCode
 }
 
 // A custom Facebook ID type to allow for more complex IDs later
