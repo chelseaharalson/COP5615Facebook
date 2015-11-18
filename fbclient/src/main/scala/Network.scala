@@ -64,10 +64,6 @@ class Network {
       pipeline(Post("http://localhost:8080/user", UserCreateForm(first_name, last_name, birthday, gender,
         email, about, relationship_status, interested_in, political, tz)))
 
-    response onComplete{
-      case Success(r) => println(r.toString)
-      case Failure(e) => e
-    }
     response
   }
 
@@ -84,11 +80,7 @@ class Network {
 
     val response: Future[UserEnt] =
       pipeline(Get("http://localhost:8080/user/test"))
-
-    response onComplete{
-      case Success(r) => println(r.toString)
-      case Failure(e) => e
-    }
+    
     response
   }
 
