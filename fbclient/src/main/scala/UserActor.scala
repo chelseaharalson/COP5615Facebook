@@ -2,21 +2,20 @@ import java.util.TimeZone
 import scala.util.Random
 import akka.actor._
 import com.github.nscala_time.time.Imports._
-import org.joda.time.Days
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
 
-class UserActor(pFirstName: String, pLastName: String, pGender: String) extends Actor {
+class UserActor(pFirstName: String, pLastName: String, pGender: Gender.EnumVal) {
   var firstName: String = ""
   var lastName: String = ""
   var birthday: DateTime = DateTime.now
-  var gender: String = ""
+  var gender: Gender.EnumVal = Gender.Unspecified
   var email: String = ""
   var about: String = ""
-  var relationshipStatus: String = ""
+  var relationshipStatus: RelationshipStatus.EnumVal = RelationshipStatus.Single
   var status: String = ""
-  var interestedIn: String = ""
-  var political: String = ""
+  var interestedIn: Gender.EnumVal = Gender.Unspecified
+  var political: PoliticalAffiliation.EnumVal = PoliticalAffiliation.Independent
   var last_updated: DateTime = DateTime.now
   var tz: TimeZone = TimeZone.getDefault
 
@@ -40,14 +39,8 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
 
   //println(firstName + " " + lastName + " " + gender + " " + about)
 
-  var s = generateCurlString(firstName, lastName, birthday, gender, email, about, relationshipStatus,
-  status, interestedIn, political, last_updated, tz)
-
-  def receive = {
-    case CreateUser => {
-      println("Hi from create user")
-    }
-  }
+  //var s = generateCurlString(firstName, lastName, birthday, gender, email, about, relationshipStatus,
+  //status, interestedIn, political, last_updated, tz)
 
   def generateBirthday: DateTime = {
     /*0% 		13 - 17
@@ -78,7 +71,7 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
     bd
   }
 
-  def generateRelationshipStatus: String = {
+  def generateRelationshipStatus: RelationshipStatus.EnumVal = {
     /*
     * Single	37 %
       Married	31 %
@@ -87,56 +80,56 @@ class UserActor(pFirstName: String, pLastName: String, pGender: String) extends 
       It’s Complicated	3 %
     * */
     val p: Integer = Random.nextInt(100)
-    var relStatus: String = ""
+    var relStatus: RelationshipStatus.EnumVal = RelationshipStatus.Single
     if (p < 37) {
-      relStatus = "Single"
+      relStatus = RelationshipStatus.Single
     }
     else if (p < 68) {
-      relStatus = "Married"
+      relStatus = RelationshipStatus.Married
     }
     else if (p < 92) {
-      relStatus = "Relationship"
+      relStatus = RelationshipStatus.Relationship
     }
     else if (p < 95) {
-      relStatus = "Engaged"
+      relStatus = RelationshipStatus.Engaged
     }
     else {
-      relStatus = "Complicated"
+      relStatus = RelationshipStatus.Complicated
     }
     relStatus
   }
 
-  def generatePoliticalStatus: String = {
+  def generatePoliticalStatus: PoliticalAffiliation.EnumVal = {
     /*
     Republicans 25%
     Independents 42%
     Democrats 29%
     */
     val p: Integer = Random.nextInt(100)
-    var polStatus: String = ""
+    var polStatus: PoliticalAffiliation.EnumVal = PoliticalAffiliation.Independent
     if (p < 25) {
-      polStatus = "Republican"
+      polStatus = PoliticalAffiliation.Republican
     }
     else if (p < 54) {
-      polStatus = "Democrat"
+      polStatus = PoliticalAffiliation.Democrat
     }
     else {
-      polStatus = "Independent"
+      polStatus = PoliticalAffiliation.Independent
     }
     polStatus
   }
 
-  def generateInterestedIn(pGender: String): String = {
+  def generateInterestedIn(pGender: Gender.EnumVal): Gender.EnumVal = {
     val p: Integer = Random.nextInt(1000)
-    var interestedIn: String = ""
-    if (pGender == "Male") {
-      interestedIn = "Female"
+    var interestedIn: Gender.EnumVal = Gender.Unspecified
+    if (pGender == Gender.Male) {
+      interestedIn = Gender.Female
     }
     else {
-      interestedIn = "Male"
+      interestedIn = Gender.Male
     }
     if (p < 7) {
-      interestedIn = "Both"
+      interestedIn = Gender.Unspecified
     }
     else if (p < 24) {
       interestedIn = pGender

@@ -1,7 +1,5 @@
 import java.util.TimeZone
-import spray.http.DateTime
-import spray.httpx.SprayJsonSupport
-import spray.json._
+import com.github.nscala_time.time.Imports._
 
 case class UserEnt(id : Identifier,
                    first_name : String,
