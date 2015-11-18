@@ -1,6 +1,8 @@
 import java.util.TimeZone
 import com.github.nscala_time.time.Imports._
 
+
+// TODO: figure out how to include modified time with this case class
 case class UserEnt(id : Identifier,
                    first_name : String,
                    last_name : String,
@@ -11,12 +13,11 @@ case class UserEnt(id : Identifier,
                    relationship_status : RelationshipStatus.EnumVal,
                    interested_in : Gender.EnumVal,
                    political : PoliticalAffiliation.EnumVal,
-                   last_updated : DateTime,
                    tz : TimeZone,
-                   status : String) {
+                   status : String) extends FacebookEntity(id) {
 
   // default constructor for creating an empty person
   def this() = this(new Identifier(0), "", "", DateTime.now, Gender.Unspecified, "", "",
                     RelationshipStatus.Complicated, Gender.Unspecified, PoliticalAffiliation.Independent,
-                    DateTime.now, TimeZone.getDefault, "")
+                    TimeZone.getDefault, "")
 }

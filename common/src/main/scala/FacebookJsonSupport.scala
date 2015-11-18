@@ -69,6 +69,7 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
-  implicit val userEntFormat  = jsonFormat13(UserEnt)
+  implicit val userEntFormat  = jsonFormat12(UserEnt)
   implicit val userCreateFormFormat  = jsonFormat10(UserCreateForm)
+  implicit val pageEntFormat = jsonFormat8(PageEnt)
 }
