@@ -45,6 +45,7 @@
 	- Album
 	- Created Time
 	- Comments
+	- Note: we should use actual binary pictures over JSON, encoded with base64
 * Albums:
 	- ID
 	- Number of photos
