@@ -1,4 +1,5 @@
 import akka.actor._
+import scala.concurrent.Future
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
 
@@ -52,14 +53,15 @@ class Master extends Actor {
   def receive = {
     case CreateUsers => {
       println("Hi from master")
+      val users = ArrayBuffer[Future[UserEnt]]()
       val Network = new Network()
       for (iFN <- 0 until girlFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new UserActor(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
-
+          val userActor = new User(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
+          users.+=(
           Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
             userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz)
+            userActor.interestedIn, userActor.political, userActor.tz))
 
           //Network.getUser()
           /*Network.addUser("Chelsea", "Metcalf", DateTime.now, Gender.Female,
@@ -71,13 +73,15 @@ class Master extends Actor {
 
       for (iFN <- 0 until boyFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new UserActor(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
-
+          val userActor = new User(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
+          users.+=(
           Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
             userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz)
+            userActor.interestedIn, userActor.political, userActor.tz))
         }
       }
+
+      println(users(0).toString)
     }
   }
 
