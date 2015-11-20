@@ -17,7 +17,6 @@ lazy val commonSettings = Seq(
     "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test",
     "com.github.nscala-time" %% "nscala-time" % "2.4.0",
     "org.gnieh" %% "spray-session" % "0.1.0-SNAPSHOT"
-
   )
 )
 
