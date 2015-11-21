@@ -69,6 +69,23 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  implicit object FacebookEntityJsonFormat extends RootJsonFormat[FacebookEntity] {
+    def write(ent : FacebookEntity) = ent match {
+      case e : UserEnt => JsObject(
+        "id" -> JsString(e.id.toString),
+        "object" -> e.toJson
+      )
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "object") match {
+        case Seq(JsString(id), JsObject(ob)) =>
+          new UserEnt()
+        case _ => deserializationError("Invalid FacebookEntity")
+      }
+    }
+  }
+
   implicit val userEntFormat  = jsonFormat12(UserEnt)
   implicit val userCreateFormFormat  = jsonFormat10(UserCreateForm)
   implicit val pageEntFormat = jsonFormat8(PageEnt)

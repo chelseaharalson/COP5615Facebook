@@ -29,7 +29,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
   // one for us, based on the supplied routes.
-  def receive = runRoute(metaRoute)
+  def receive = runRoute(sessionRoute)
 
   // Path directive that extracts a Facebook ID
   def ObjectID = path(FBID)
@@ -47,33 +47,15 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   implicit val timeout = Timeout(5.seconds)
   implicit val manager = new InMemorySessionManager[Int](ConfigFactory.load())
 
-  lazy val metaRoute = {
+  lazy val sessionRoute = {
     handleRejections(invalidSessionHandler) {
       cookieSession() { (session_id, session_map) =>
-        loginRoute(session_id, session_map) ~ {
-          val isLoggedIn = session_map.getOrElse("logged_in", 0)
-
-          if (isLoggedIn != 0)
-            routes(session_id, session_map)
-          else
-            reject(ValidationRejection("Invalid login"))
-        }
-      }
-    }
-  }
-
-  def loginRoute(session_id : String, session_map : Map[String, Int]) = {
-    pathPrefix("user") {
-      path("login") {
-        updateSession(session_id, session_map.updated("logged_in", 1)) {
-          TextResp("Logged in")
-        }
+        routes(session_id, session_map)
       }
     }
   }
 
   // handles the other path, we could also define these in separate files
-  // This is just a simple route to explain the concept
   def routes(session_id : String, session_map : Map[String, Int]) = {
       pathPrefix("user") {
         path("test") {
@@ -97,7 +79,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
             if (map.contains(new Identifier(id))) {
               map {
                 new Identifier(id)
-              }
+              }.asInstanceOf[FacebookEntity]
             } else {
               "Unknown ID"
             }
