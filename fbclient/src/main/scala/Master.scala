@@ -53,14 +53,10 @@ class Master(implicit system: ActorSystem) extends Actor {
 
   def receive = {
     case CreateUsers => {
-      //println("Hi from CreateUsers")
-
-      //implicit val system2 = ActorSystem("FacebookClientSimulator")
       var counter = 0
       for (iFN <- 0 until girlFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
           counter = counter + 1
-          //println("GIRL COUNTER: " + counter)
           val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
           //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
@@ -70,20 +66,17 @@ class Master(implicit system: ActorSystem) extends Actor {
       for (iFN <- 0 until boyFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
           counter = counter + 1
-          //println("BOY COUNTER: " + counter)
           val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
         }
       }
 
       Thread.sleep(5000)
-      //println("ADD FRIEND " + counter)
       context.self ! AddFriends(counter)
     }
 
     case AddFriends(numOfUsers) => {
       for (i <- 1 to numOfUsers) {
-        //println("Adding: " + i)
         context.actorSelection("../" + i.toString()) ! AddFriends(numOfUsers)
       }
     }

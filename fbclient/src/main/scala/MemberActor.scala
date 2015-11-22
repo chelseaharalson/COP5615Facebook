@@ -80,13 +80,17 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     addMember(firstName, lastName, birthday, gender, email, about, relationshipStatus, interestedIn, political, tz)
   }
 
-
   def schedulePosting(mili : Long) = {
+    /*implicit val system2 = ActorSystem("FacebookClientSimulator")
+    val t = system2.actorOf(Props(new MemberActor()), "TEST")
+    scheduler = system2.scheduler.scheduleOnce(10000 milliseconds, t, doPost(1, 2, "test post"))*/
     //implicit val system3 = ActorSystem("FBClientSimulator")
     //val t = system3.actorOf(Props(new MemberActor()), "TEST")
     //system3.scheduler.scheduleOnce(10000 milliseconds, context.self, doPost(1, 2, "test post"))
 
     scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
+
+    //scheduler = system.scheduler.schedule(0 milliseconds, 10000 milliseconds, self, doPost(1, 2, "test post"))
 
     //scheduler = system3.scheduler.scheduleOnce(mili milliseconds, self, doPost(1, 2, "test post"))
 
