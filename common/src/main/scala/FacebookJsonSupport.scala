@@ -1,5 +1,7 @@
 import java.util.TimeZone
-//import spray.http.DateTime
+
+import org.joda.time.DateTime
+
 import spray.httpx.SprayJsonSupport
 import spray.json._
 import com.github.nscala_time.time.Imports._
@@ -17,18 +19,11 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object DateTimeJsonFormat extends JsonFormat[DateTime] {
     private val dateTimeFmt = org.joda.time.format.ISODateTimeFormat.dateTime
 
-    def write(datetime: DateTime) = JsString(datetime.toString())
+    def write(datetime: DateTime) = JsString(datetime.toString)
 
     def read(value: JsValue) = value match {
       case JsString(a) =>
         dateTimeFmt.parseDateTime(a)
-        //val result = DateTime.from
-        //val result = DateTime.fromIsoDateTimeString(a.toString)
-
-        /*if(result.nonEmpty)
-          result.get
-        else
-          deserializationError("Invalid DateTime ISO")*/
       case _ => deserializationError("DateTime string expected")
     }
   }
@@ -69,6 +64,74 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
-  implicit val userEntFormat  = jsonFormat13(UserEnt)
+  def annotate(obj : JsObject, ent : FacebookEntity) = {
+    var objFields = obj.fields
+    objFields += (
+      "id" -> JsString(ent.id.toString),
+      "modified_time" -> JsString(ent.modified_time.toString)
+      )
+    JsObject(objFields)
+  }
+
+  implicit object FacebookEntityJsonFormat extends RootJsonFormat[FacebookEntity] {
+    def write(ent : FacebookEntity) = ent match {
+      case e : UserEnt =>
+        var objFields = e.toJson.asJsObject.fields
+        objFields += (
+          "id" -> JsString(e.id.toString),
+          "modified_time" -> JsString(e.modified_time.toString)
+        )
+
+        JsObject(objFields)
+      case _ => serializationError("Unhandled FacebookEntity type")
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "object") match {
+        case Seq(JsString(id), JsObject(ob)) =>
+          new UserEnt()
+        case _ => deserializationError("Invalid FacebookEntity")
+      }
+    }
+  }
+
+  implicit object UserEntJsonFormat extends RootJsonFormat[UserEnt] {
+    def write(ent : UserEnt) = {
+      annotate(JsObject(
+        "first_name" -> JsString(ent.first_name),
+        "last_name" -> JsString(ent.last_name),
+        "birthday" -> ent.birthday.toJson,
+        "gender" -> ent.gender.toJson,
+        "email" -> JsString(ent.email),
+        "about" -> JsString(ent.about),
+        "relationship_status" -> ent.relationship_status.toJson,
+        "interested_in" -> ent.interested_in.toJson,
+        "political" -> ent.political.toJson,
+        "tz" -> ent.tz.toJson,
+        "status" -> JsString(ent.status)
+      ), ent)
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "modified_time", "first_name", "last_name", "birthday",
+        "gender", "email", "about", "relationship_status",
+        "interested_in", "political", "tz", "status") match {
+        case Seq(id, modified_time, JsString(first_name), JsString(last_name), birthday,
+        gender, JsString(email), JsString(about), relationship_status,
+        interested_in, political, tz, JsString(status)
+        ) =>
+          val ent = new UserEnt(id.convertTo[Identifier], first_name, last_name, birthday.convertTo[DateTime],
+            gender.convertTo[Gender.EnumVal], email, about, relationship_status.convertTo[RelationshipStatus.EnumVal],
+            interested_in.convertTo[Gender.EnumVal], political.convertTo[PoliticalAffiliation.EnumVal], tz.convertTo[TimeZone],
+            status
+          )
+          ent.modified_time = modified_time.convertTo[DateTime]
+          ent
+        case unk : Any => deserializationError("Invalid UserEnt format: " + unk.toString)
+      }
+    }
+  }
+
   implicit val userCreateFormFormat  = jsonFormat10(UserCreateForm)
+  //implicit val pageEntFormat = jsonFormat8(PageEnt)
 }

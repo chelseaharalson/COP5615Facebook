@@ -5,6 +5,7 @@ lazy val commonSettings = Seq(
   version := "1.0",
   scalaVersion := "2.11.5",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
+  resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies := Seq(
     "com.typesafe.akka" %% "akka-actor" % "2.3.11",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
@@ -14,7 +15,8 @@ lazy val commonSettings = Seq(
     "io.spray"            %%  "spray-client" % sprayV,
     "io.spray"            %%  "spray-testkit" % sprayV  % "test",
     "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test",
-    "com.github.nscala-time" %% "nscala-time" % "2.4.0"
+    "com.github.nscala-time" %% "nscala-time" % "2.4.0",
+    "org.gnieh" %% "spray-session" % "0.1.0-SNAPSHOT"
   )
 )
 

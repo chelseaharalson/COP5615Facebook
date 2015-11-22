@@ -1,35 +1,63 @@
 import java.util.TimeZone
-import com.github.nscala_time.time.Imports._
-import akka.actor.Actor
+import akka.util.Timeout
+import spray.http.StatusCodes.Unauthorized
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+// DO NOT remove this execution ctx as it is needed by Spray session deep down
+import ExecutionContext.Implicits.global
+import com.github.nscala_time.time.Imports.DateTime
+import akka.actor.{ActorSystem, Actor}
+import com.typesafe.config.ConfigFactory
 import spray.routing._
-//import spray.http._
+import session._
+import session.directives._
 
 import FacebookJsonSupport._
 
+import scala.collection.mutable
+
 // simple actor that handles the routes.
-class API extends Actor with HttpService {
+class API extends Actor with HttpService with StatefulSessionManagerDirectives[Int] {
 
   // required as implicit value for the HttpService
   // included from SJService
-  def actorRefFactory = context
+  implicit val actorRefFactory = context.system
+  //implicit val system : ActorSystem = actorRefFactory.system
 
-  // we don't create a receive function ourselve, but use
+  var map = mutable.HashMap[Identifier, UserEnt]()
+
+  // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
   // one for us, based on the supplied routes.
-  def receive = runRoute(testRoute)
+  def receive = runRoute(sessionRoute)
 
   // Path directive that extracts a Facebook ID
   def ObjectID = path(FBID)
-  def TextResp(s : String) = complete { s }
+
+  val invalidSessionHandler = RejectionHandler {
+    case InvalidSessionRejection(id) :: _ =>
+      complete((Unauthorized, s"Unknown session $id"))
+  }
+
+  // needed as an implicit for Session timeout. The library does not currently use this
+  implicit val timeout = Timeout(5.seconds)
+  implicit val manager = new InMemorySessionManager[Int](ConfigFactory.load())
+
+  lazy val sessionRoute = {
+    handleRejections(invalidSessionHandler) {
+      cookieSession() { (session_id, session_map) =>
+        routes(session_id, session_map)
+      }
+    }
+  }
 
   // handles the other path, we could also define these in separate files
-  // This is just a simple route to explain the concept
-  val testRoute = {
+  def routes(session_id : String, session_map : Map[String, Int]) =
     pathPrefix("user") {
       path("test") {
         get {
           complete {
-            new UserEnt
+            new UserEnt()
           }
         }
       } ~
@@ -40,47 +68,67 @@ class API extends Actor with HttpService {
           }
         }
       } ~
-      post {
-        // Receive a JSON entity that acts as a form
-        entity(as[UserCreateForm]) { user =>
+      ObjectID { id =>
+        get {
           complete {
-            // TODO: validate the user's form fields
-            new UserEnt(new Identifier(0),
-              first_name = user.first_name,
-              last_name = user.last_name,
-              birthday =  user.birthday,
-              gender = user.gender,
-              email = user.email,
-              about = user.about,
-              relationship_status = user.relationship_status,
-              interested_in = user.interested_in,
-              political = user.political,
-              tz = user.tz,
-              last_updated = DateTime.now,
-              status = ""
-            )
+            if (map.contains(new Identifier(id))) {
+              map {
+                new Identifier(id)
+              }.asInstanceOf[FacebookEntity]
+            } else {
+              "Unknown ID"
+            }
           }
         }
       } ~
-      get {
-        TextResp("Yourself")
+      pathEndOrSingleSlash {
+        post {
+          // Receive a JSON entity that acts as a form
+          entity(as[UserCreateForm]) { user =>
+            complete {
+              val id = new Identifier(0)
+              // TODO: validate the user's form fields
+              val ent = new UserEnt(id,
+                first_name = user.first_name,
+                last_name = user.last_name,
+                birthday = user.birthday,
+                gender = user.gender,
+                email = user.email,
+                about = user.about,
+                relationship_status = user.relationship_status,
+                interested_in = user.interested_in,
+                political = user.political,
+                tz = user.tz,
+                status = ""
+              )
+
+              map += (id -> ent)
+              ent
+            }
+          }
+        } ~
+        get {
+          complete("Yourself")
+        }
       }
     } ~
     pathPrefix("comment") {
       ObjectID { id =>
         get {
-          complete { s"Comment $id"}
-        } ~
-        put {
           complete {
-            "Editing comment"
+            s"Comment $id"
           }
         } ~
-        delete {
-          complete {
-            "Removing comment"
+          put {
+            complete {
+              "Editing comment"
+            }
+          } ~
+          delete {
+            complete {
+              "Removing comment"
+            }
           }
-        }
       } ~
       post {
         complete {
@@ -126,7 +174,7 @@ class API extends Actor with HttpService {
           complete {
             s"Getting likes for $id"
           }
-        }
+        } ~
         post {
           complete {
             s"Liking object $id"
@@ -146,11 +194,11 @@ class API extends Actor with HttpService {
             s"Getting messages for thread $id"
           }
         } ~
-        post {
-          complete {
-            s"New message for thread $id"
+          post {
+            complete {
+              s"New message for thread $id"
+            }
           }
-        }
       } ~
       path("threads") {
         get {
@@ -174,5 +222,4 @@ class API extends Actor with HttpService {
         }
       }
     }
-  }
 }
