@@ -1,9 +1,11 @@
 import akka.actor._
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class Master extends Actor {
+class Master(implicit system: ActorSystem) extends Actor {
 
   // Users - large set
   /*val fileGirlNames = "TextFiles/GirlNames.txt"
@@ -51,32 +53,31 @@ class Master extends Actor {
 
   def receive = {
     case CreateUsers => {
-      println("Hi from master")
-      val Network = new Network()
+      var counter = 0
       for (iFN <- 0 until girlFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new UserActor(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
-
-          Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
-            userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz)
-
-          //Network.getUser()
-          /*Network.addUser("Chelsea", "Metcalf", DateTime.now, Gender.Female,
-            "chelsea.metcalf@gmail.com", "Test about", RelationshipStatus.Single,
-            Gender.Male, PoliticalAffiliation.Democrat, TimeZone.getDefault)*/
-
+          counter = counter + 1
+          val t = system.actorOf(Props(new MemberActor()), counter.toString)
+          t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
+          //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
         }
       }
 
       for (iFN <- 0 until boyFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new UserActor(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
-
-          Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
-            userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz)
+          counter = counter + 1
+          val t = system.actorOf(Props(new MemberActor()), counter.toString)
+          t ! CreateUser(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
         }
+      }
+
+      Thread.sleep(5000)
+      context.self ! AddFriends(counter)
+    }
+
+    case AddFriends(numOfUsers) => {
+      for (i <- 1 to numOfUsers) {
+        context.actorSelection("../" + i.toString()) ! AddFriends(numOfUsers)
       }
     }
   }

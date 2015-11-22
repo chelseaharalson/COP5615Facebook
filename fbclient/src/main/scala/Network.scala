@@ -1,6 +1,7 @@
 import java.util.TimeZone
 import akka.actor._
 import spray.httpx.SprayJsonSupport
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Await, Future}
 import spray.http._
 import akka.io.IO
@@ -16,7 +17,7 @@ import spray.json.DefaultJsonProtocol
 import spray.httpx.SprayJsonSupport._
 import spray.client.pipelining._
 
-class Network {
+class Network() {
   /*implicit val timeout = Timeout(5.seconds)
   implicit val system = ActorSystem()
   import system.dispatcher // execution context for futures
@@ -34,7 +35,7 @@ class Network {
     case Failure(e) => e
   }*/
 
-  import com.github.nscala_time.time.Imports._
+  /*import com.github.nscala_time.time.Imports._
   def addUser(first_name : String,
               last_name : String,
               birthday : DateTime,
@@ -82,6 +83,6 @@ class Network {
       pipeline(Get("http://localhost:8080/user/test"))
     
     response
-  }
+  }*/
 
 }
