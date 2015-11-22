@@ -1,7 +1,8 @@
 import akka.actor._
-import scala.concurrent.Future
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class Master extends Actor {
@@ -52,36 +53,38 @@ class Master extends Actor {
 
   def receive = {
     case CreateUsers => {
-      println("Hi from master")
-      val users = ArrayBuffer[Future[UserEnt]]()
-      val Network = new Network()
+      println("Hi from CreateUsers")
+
+      implicit val system2 = ActorSystem("FacebookClientSimulator")
+      var counter = 0
       for (iFN <- 0 until girlFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new User(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
-          users.+=(
-          Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
-            userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz))
-
-          //Network.getUser()
-          /*Network.addUser("Chelsea", "Metcalf", DateTime.now, Gender.Female,
-            "chelsea.metcalf@gmail.com", "Test about", RelationshipStatus.Single,
-            Gender.Male, PoliticalAffiliation.Democrat, TimeZone.getDefault)*/
-
+          counter = counter + 1
+          //println("GIRL COUNTER: " + counter)
+          val t = system2.actorOf(Props(new MemberActor()), counter.toString)
+          t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
+          //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
         }
       }
 
       for (iFN <- 0 until boyFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
-          val userActor = new User(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
-          users.+=(
-          Network.addUser(userActor.firstName, userActor.lastName, userActor.birthday, userActor.gender,
-            userActor.email, userActor.about, userActor.relationshipStatus,
-            userActor.interestedIn, userActor.political, userActor.tz))
+          counter = counter + 1
+          //println("BOY COUNTER: " + counter)
+          val t = system2.actorOf(Props(new MemberActor()), counter.toString)
+          t ! CreateUser(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
         }
       }
 
-      println(users(0).toString)
+      Thread.sleep(5000)
+      context.self ! AddFriends(counter)
+    }
+
+    case AddFriends(numOfUsers) => {
+      for (i <- 1 to numOfUsers) {
+        //println("Adding: " + i)
+        context.actorSelection("../" + i.toString()) ! AddFriends(numOfUsers)
+      }
     }
   }
 

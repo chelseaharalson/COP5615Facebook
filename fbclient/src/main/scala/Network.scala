@@ -35,7 +35,7 @@ class Network() {
     case Failure(e) => e
   }*/
 
-  import com.github.nscala_time.time.Imports._
+  /*import com.github.nscala_time.time.Imports._
   def addUser(first_name : String,
               last_name : String,
               birthday : DateTime,
@@ -83,6 +83,6 @@ class Network() {
       pipeline(Get("http://localhost:8080/user/test"))
     
     response
-  }
+  }*/
 
 }
