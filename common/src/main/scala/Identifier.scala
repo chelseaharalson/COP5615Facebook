@@ -2,6 +2,7 @@ import spray.routing.PathMatchers._
 
 class Identifier(id : String) {
   def this(id : Long) = this(id.toString)
+  def asInt = id
 
   override def toString = id
 
