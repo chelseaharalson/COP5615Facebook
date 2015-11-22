@@ -59,7 +59,6 @@ class Master(implicit system: ActorSystem) extends Actor {
           counter = counter + 1
           val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
-          //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
         }
       }
 

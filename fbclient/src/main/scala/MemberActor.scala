@@ -5,13 +5,12 @@ import spray.client.pipelining._
 import scala.concurrent.Future
 import com.github.nscala_time.time.Imports._
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+//import scala.concurrent.ExecutionContext.Implicits.global
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
-  //implicit val sys: ActorSystem = system
 
-  //schedulePosting(10000)
+  schedulePosting(20000)
 
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
@@ -22,8 +21,6 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       println("Adding friends...")
     }
   }
-
-  schedulePosting(10000)
 
   def addMember(first_name : String,
                 last_name : String,
@@ -36,7 +33,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
                 political : PoliticalAffiliation.EnumVal,
                 tz : TimeZone) : Future[UserEnt] = {
     import FacebookJsonSupport._
-
+    import scala.concurrent.ExecutionContext.Implicits.global
     val pipeline: HttpRequest => Future[UserEnt] = (
       addHeader("X-My-Special-Header", "fancy-value")
         ~> sendReceive
@@ -81,24 +78,11 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
   }
 
   def schedulePosting(mili : Long) = {
-    /*implicit val system2 = ActorSystem("FacebookClientSimulator")
-    val t = system2.actorOf(Props(new MemberActor()), "TEST")
-    scheduler = system2.scheduler.scheduleOnce(10000 milliseconds, t, doPost(1, 2, "test post"))*/
-    //implicit val system3 = ActorSystem("FBClientSimulator")
-    //val t = system3.actorOf(Props(new MemberActor()), "TEST")
-    //system3.scheduler.scheduleOnce(10000 milliseconds, context.self, doPost(1, 2, "test post"))
-
-    scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
-
-    //scheduler = system.scheduler.schedule(0 milliseconds, 10000 milliseconds, self, doPost(1, 2, "test post"))
-
-    //scheduler = system3.scheduler.scheduleOnce(mili milliseconds, self, doPost(1, 2, "test post"))
-
-    //sys.scheduler.scheduleOnce(10000 milliseconds, self, doPost(1, 2, "test post"))
-
-    //val system = ActorSystem("MySystem")
-    //system.scheduler.schedule(mili milliseconds)
-    //system.scheduler.schedule(0 seconds, 5 minutes)(println("do something"))
+    //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
+    import system.dispatcher
+    system.scheduler.scheduleOnce(mili milliseconds) {
+      self ! doPost(1, 2, "test post")
+    }
   }
 
   def doPost(myID : Integer, friendID : Integer, post : String) = {
