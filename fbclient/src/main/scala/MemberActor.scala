@@ -3,8 +3,9 @@ import spray.http.HttpRequest
 import java.util.TimeZone
 import spray.client.pipelining._
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.nscala_time.time.Imports._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
@@ -76,7 +77,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   def waitForPost(mili : Long) = {
     implicit val system2 = ActorSystem("FacebookClientSimulator")
-    //system2.scheduler.scheduleOnce(mili milliseconds, t, CreateUser("Chelsea", "Metcalf", Gender.Female))
+    //system2.scheduler.scheduleOnce(mili milliseconds, self, CreateUser("Chelsea", "Metcalf", Gender.Female))
   }
 
   def doPost(myID : Integer, friendID : Integer, post : String) = {
@@ -88,8 +89,8 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
         ~> unmarshal[UserEnt]
       )
 
-    /*val response: Future[UserEnt2] =
-      pipeline(Post("http://localhost:8080/user", UserCreateForm2(first_name, last_name, gender,
+    /*val response: Future[UserEnt] =
+      pipeline(Post("http://localhost:8080/user", UserCreateForm2(first_name, last_name, birthday, gender,
         email, about, relationship_status, interested_in, political, tz)))*/
 
   }
