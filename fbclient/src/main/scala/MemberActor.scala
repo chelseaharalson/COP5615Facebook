@@ -85,8 +85,9 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     }
   }
 
-  def doPost(myID : Integer, friendID : Integer, post : String) = {
-    /*import FacebookJsonSupport._
+  def doPost(myID : Integer, friendID : Integer, content : String) = {
+    /*import scala.concurrent.ExecutionContext.Implicits.global
+    import FacebookJsonSupport._
 
     val pipeline: HttpRequest => Future[UserEnt] = (
       addHeader("X-My-Special-Header", "fancy-value")
@@ -94,12 +95,10 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
         ~> unmarshal[UserEnt]
       )*/
 
-    println(post)
+    println(content)
 
     /*val response: Future[UserEnt] =
-      pipeline(Post("http://localhost:8080/user", UserCreateForm2(first_name, last_name, birthday, gender,
-        email, about, relationship_status, interested_in, political, tz)))*/
-
+      pipeline(Post("http://localhost:8080/user", UserCreateForm(content)))*/
   }
 
   def addFriends(numOfFriends : Int, numOfMembers : Int) = {
