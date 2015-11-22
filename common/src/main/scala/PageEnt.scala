@@ -1,4 +1,4 @@
-case class PageEnt(id : Identifier,
+class PageEnt(id : Identifier,
                    name : String,
                    about : String,
                    business : String,

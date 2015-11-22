@@ -34,10 +34,6 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   // Path directive that extracts a Facebook ID
   def ObjectID = path(FBID)
 
-  def TextResp(s : String) = complete {
-    s
-  }
-
   val invalidSessionHandler = RejectionHandler {
     case InvalidSessionRejection(id) :: _ =>
       complete((Unauthorized, s"Unknown session $id"))
@@ -56,13 +52,12 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   }
 
   // handles the other path, we could also define these in separate files
-  def routes(session_id : String, session_map : Map[String, Int]) = {
-      pathPrefix("user") {
-        path("test") {
-          get {
-            complete {
-              new UserEnt
-            }
+  def routes(session_id : String, session_map : Map[String, Int]) =
+    pathPrefix("user") {
+      path("test") {
+        get {
+          complete {
+            new UserEnt()
           }
         }
       } ~
@@ -113,7 +108,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
           }
         } ~
         get {
-          TextResp("Yourself")
+          complete("Yourself")
         }
       }
     } ~

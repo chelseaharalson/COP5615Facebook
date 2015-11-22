@@ -1,9 +1,7 @@
-import spray.http.DateTime
+import com.github.nscala_time.time.Imports._
 
-class FacebookEntity(id : Identifier) {
-  private var modified_time : DateTime = DateTime.now
-
-  def modifiedTime = modified_time
+class FacebookEntity(var id : Identifier) {
+  var modified_time : DateTime = DateTime.now
 
   /**
     * Updates the object's modified time to reflect a change
