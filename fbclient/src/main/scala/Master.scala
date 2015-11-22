@@ -5,7 +5,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class Master extends Actor {
+class Master(implicit system: ActorSystem) extends Actor {
 
   // Users - large set
   /*val fileGirlNames = "TextFiles/GirlNames.txt"
@@ -53,15 +53,15 @@ class Master extends Actor {
 
   def receive = {
     case CreateUsers => {
-      println("Hi from CreateUsers")
+      //println("Hi from CreateUsers")
 
-      implicit val system2 = ActorSystem("FacebookClientSimulator")
+      //implicit val system2 = ActorSystem("FacebookClientSimulator")
       var counter = 0
       for (iFN <- 0 until girlFirstNames.size) {
         for (iLN <- 0 until lastNames.size) {
           counter = counter + 1
           //println("GIRL COUNTER: " + counter)
-          val t = system2.actorOf(Props(new MemberActor()), counter.toString)
+          val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
           //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
         }
@@ -71,12 +71,13 @@ class Master extends Actor {
         for (iLN <- 0 until lastNames.size) {
           counter = counter + 1
           //println("BOY COUNTER: " + counter)
-          val t = system2.actorOf(Props(new MemberActor()), counter.toString)
+          val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(boyFirstNames(iFN), lastNames(iLN), Gender.Male)
         }
       }
 
       Thread.sleep(5000)
+      //println("ADD FRIEND " + counter)
       context.self ! AddFriends(counter)
     }
 
