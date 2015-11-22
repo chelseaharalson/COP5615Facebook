@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext
 // DO NOT remove this execution ctx as it is needed by Spray session deep down
 import ExecutionContext.Implicits.global
 import com.github.nscala_time.time.Imports.DateTime
-import akka.actor.{ActorSystem, Actor}
+import akka.actor.{ActorRef, Props, ActorSystem, Actor}
 import com.typesafe.config.ConfigFactory
 import spray.routing._
 import session._
@@ -16,6 +16,22 @@ import FacebookJsonSupport._
 
 import scala.collection.mutable
 
+case class Session(id : String, values : Map[String, Int]) {
+  def getCurrentUser() = {
+    val uid : Option[Int] = values.get("user_id")
+
+    if(!uid.contains()) {
+      throw new Exception("Invalid user ID")
+    }
+
+    new Identifier(uid.get)
+  }
+
+  def setUserId(id : Identifier) = {
+    values.updated("user_id", id.asInt)
+  }
+}
+
 // simple actor that handles the routes.
 class API extends Actor with HttpService with StatefulSessionManagerDirectives[Int] {
 
@@ -23,6 +39,14 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   // included from SJService
   implicit val actorRefFactory = context.system
   //implicit val system : ActorSystem = actorRefFactory.system
+
+
+  var objectActor : ActorRef = null
+
+  override def preStart = {
+    // create the data object actor
+    objectActor = actorRefFactory.actorOf(Props[DataObjectActor], "DataObjectActor")
+  }
 
   var map = mutable.HashMap[Identifier, UserEnt]()
 
@@ -46,13 +70,13 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   lazy val sessionRoute = {
     handleRejections(invalidSessionHandler) {
       cookieSession() { (session_id, session_map) =>
-        routes(session_id, session_map)
+        routes(Session(session_id, session_map))
       }
     }
   }
 
   // handles the other path, we could also define these in separate files
-  def routes(session_id : String, session_map : Map[String, Int]) =
+  def routes(session : Session) =
     pathPrefix("user") {
       path("test") {
         get {
@@ -68,43 +92,28 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
           }
         }
       } ~
-      ObjectID { id =>
-        get {
-          complete {
-            if (map.contains(new Identifier(id))) {
-              map {
-                new Identifier(id)
-              }.asInstanceOf[FacebookEntity]
-            } else {
-              "Unknown ID"
-            }
+      path("add_friend" / FBID) { id =>
+        post { ctx =>
+          objectActor ! AddFriend(ctx, session.getCurrentUser(), new Identifier(id))
+        }
+      } ~
+      /*path("status") {
+        entity(as[UserSetStatusForm]) { form => ctx =>
+          post {
+            objectActor ! SetStatus(ctx, session.getCurrentUser(), form)
           }
+        }
+      } ~ */
+      ObjectID { id =>
+        get { ctx =>
+          objectActor ! RetrieveUser(ctx, new Identifier(id))
         }
       } ~
       pathEndOrSingleSlash {
         post {
           // Receive a JSON entity that acts as a form
-          entity(as[UserCreateForm]) { user =>
-            complete {
-              val id = new Identifier(0)
-              // TODO: validate the user's form fields
-              val ent = new UserEnt(id,
-                first_name = user.first_name,
-                last_name = user.last_name,
-                birthday = user.birthday,
-                gender = user.gender,
-                email = user.email,
-                about = user.about,
-                relationship_status = user.relationship_status,
-                interested_in = user.interested_in,
-                political = user.political,
-                tz = user.tz,
-                status = ""
-              )
-
-              map += (id -> ent)
-              ent
-            }
+          entity(as[UserCreateForm]) { user => ctx =>
+            objectActor ! CreateUser(ctx, user, session)
           }
         } ~
         get {
