@@ -1,0 +1,4 @@
+for i in `seq 1 $1`; do
+curl 'http://www.google-analytics.com/collect?v=1&_v=j40&a=1718306811&t=pageview&_s=1&dl=http%3A%2F%2Fnames.igopaygo.com%2Fstreet%2Fnorth_american_address&ul=en-us&de=UTF-8&dt=North%20American%20Address%20Generator&sd=24-bit&sr=1440x900&vp=449x767&je=1&fl=19.0%20r0&_u=AACAAEABI~&jid=&cid=1575446093.1448267036&tid=UA-27171956-1&z=913127058' -H 'Accept: image/webp,image/*,*/*;q=0.8' -H 'Connection: keep-alive' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Referer: http://names.igopaygo.com/street/north_american_address' -H 'Accept-Language: en-US,en;q=0.8' -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36' --compressed --compressed -s
+echo
+done

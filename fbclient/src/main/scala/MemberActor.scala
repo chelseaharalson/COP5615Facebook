@@ -79,13 +79,22 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   def schedulePosting(mili : Long) = {
     //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
+    val user = new User()
+    val fileStatus = "TextFiles/Status.txt"
+    val posts = user.parseFile(fileStatus)
+    val userPost = user.generateStatus(posts)
+
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
-      self ! doPost(1, 2, "test post")
+      self ! doPost(1, 2, userPost)
     }
   }
 
   def doPost(myID : Integer, friendID : Integer, content : String) = {
+    val timePosted = System.currentTimeMillis()
+    var post : String = content
+    post = "User " + myID + " posted to " + friendID + " : " + content
+
     /*import scala.concurrent.ExecutionContext.Implicits.global
     import FacebookJsonSupport._
 
@@ -95,7 +104,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
         ~> unmarshal[UserEnt]
       )*/
 
-    println(content)
+    println(post)
 
     /*val response: Future[UserEnt] =
       pipeline(Post("http://localhost:8080/user", UserCreateForm(content)))*/
