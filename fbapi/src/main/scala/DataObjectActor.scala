@@ -5,129 +5,294 @@ import spray.http.{StatusCode, StatusCodes}
 import scala.collection.mutable
 import FacebookJsonSupport._
 
-case class CreateUser(ctx : RequestContext, user : UserCreateForm, session : Session)
-case class RetrieveUser(ctx : RequestContext, id : Identifier)
+// Entity creation
+case class CreateUser(ctx : RequestContext, form : UserCreateForm)
+case class CreatePage(ctx : RequestContext, form : PageCreateForm)
+case class CreatePost(ctx : RequestContext, owner : Identifier, target : Identifier, form : PostCreateForm)
+case class CreateAlbum(ctx : RequestContext, owner : Identifier, form : AlbumCreateForm)
+case class CreatePicture(ctx : RequestContext, albumId : Identifier, form : PictureCreateForm)
+
+// Entity retrieval
+case class GetUser(ctx : RequestContext, id : Identifier)
+case class GetPage(ctx : RequestContext, id : Identifier)
+case class GetPost(ctx : RequestContext, id : Identifier)
+case class GetAlbum(ctx : RequestContext, id : Identifier)
+case class GetPicture(ctx : RequestContext, id : Identifier)
+case class GetEntOfType(ctx : RequestContext, id : Identifier, objType : FacebookEntityType.EntityType)
+
+// Actions
 case class AddFriend(ctx : RequestContext, requester : Identifier, target : Identifier)
-case class AddFriendX(ctx : RequestContext, myID : Identifier, friendID : Identifier)
-case class AddPost(ctx : RequestContext, myID : Identifier, friendID : Identifier, content : String)
-case class AddAlbum(ctx : RequestContext, userID : Identifier, albumID : Identifier, albumName : String)
-case class CreatePage(ctx : RequestContext, page : PageCreateForm, session : Session)
-case class RetrievePage(ctx : RequestContext, id : Identifier)
+
+// Queries
+case class GetFriendsList(ctx : RequestContext, uid : Identifier)
+case class GetPostsByUser(ctx : RequestContext, uid : Identifier)
+case class GetUserList(ctx : RequestContext, uid : Identifier)
+case class GetPageList(ctx : RequestContext, uid : Identifier)
+
+// TODO WANT: Editing functions
+// TODO WANT: Removal functions
+
 
 class DataObjectActor extends Actor with ActorLogging {
-  var userMap = mutable.HashMap[Identifier, UserEnt]()
-  var friendsLists = mutable.HashMap[Identifier, FriendsList]()
+  // Response wrapper
+  type FacebookResponse = (StatusCode, Object)
+
+  // Global ID counter
   var nextId = 0
+
+  // [ Entity storage ]
+  var userMap = mutable.HashMap[Identifier, UserEnt]()
   var pageMap = mutable.HashMap[Identifier, PageEnt]()
+  var postMap = mutable.HashMap[Identifier, PostEnt]()
+  var albumMap = mutable.HashMap[Identifier, AlbumEnt]()
+  var pictureMap = mutable.HashMap[Identifier, PictureEnt]()
+
+  // [ Metadata storage ]
+  // Stores the corresponding entity types for an identifier
+  var typeMap = mutable.HashMap[Identifier, FacebookEntity]()
+
+  // [ Auxiliary object storage ]
+  var friendsList = mutable.HashMap[Identifier, FriendsList]()
+
+  /////////////////////////////////////////////////////////////////////////
+
+  /**
+    * Helper method that converts a FacebookResponse to a marshallable objet
+    * @param ctx Request context
+    * @param resp Facebook response content
+    */
+  def finalize(ctx : RequestContext, resp : FacebookResponse) = {
+    val code = resp._1
+
+    resp._2 match {
+      case e : UserEnt =>
+        ctx.complete(code, e)
+      case e : PageEnt =>
+        ctx.complete(code, e)
+      case e : PostEnt =>
+        ctx.complete(code, e)
+      case e : AlbumEnt =>
+        ctx.complete(code, e)
+      case e : PictureEnt =>
+        ctx.complete(code, e)
+      case e : String =>
+        ctx.complete(code, e)
+      case _ => throw new Exception("Unsupported object return type")
+    }
+  }
 
   def receive = {
-    case CreateUser(ctx, user, session) =>
-      log.info("Creating user " + user.toString)
+    // ################# Creation
+    case CreateUser(ctx, form) =>
+      log.info("Creating user " + form.first_name)
+      finalize(ctx, createUser(form))
+    case CreatePage(ctx, form) =>
+      log.info("Creating page " + form.toString)
+      finalize(ctx, createPage(form))
+    case CreatePost(ctx, myId, target, PostCreateForm(content)) =>
+      log.info("TODO: CreatePost")
+      finalize(ctx, (NotFound, "Not implemented"))
+    case CreateAlbum(ctx, myId, AlbumCreateForm(name, description)) =>
+      log.info("TODO: CreateAlbum...")
+      finalize(ctx, (NotFound, "Not implemented"))
+    case CreatePicture(ctx, albumId, PictureCreateForm(caption, fileId)) =>
+      log.info("TODO: CreatePicture")
+      finalize(ctx, (NotFound, "Not implemented"))
 
-      val id = new Identifier(getNextId)
-
-      val ent = new UserEnt(id,
-        first_name = user.first_name,
-        last_name = user.last_name,
-        birthday = user.birthday,
-        gender = user.gender,
-        email = user.email,
-        about = user.about,
-        relationship_status = user.relationship_status,
-        interested_in = user.interested_in,
-        political = user.political,
-        tz = user.tz,
-        status = ""
-      )
-
-      // start with an empty friends list
-      friendsLists += (id -> FriendsList(mutable.MutableList()))
-      userMap += (id -> ent)
-      // TODO: must use update session id
-      session.setUserId(id)
-      ctx.complete(ent)
-    case AddFriend(ctx, requester, target) =>
-      log.info(s"Adding friends $requester <-> $target")
-      ctx.complete(addFriend(requester, target))
-    case AddFriendX(ctx, myID, friendID) =>
-      println("ADD FRIEND WORKS!!")
-      ctx.complete(addFriend(myID, friendID))
-    case AddPost(ctx, myID, friendID, content) =>
-      println("ADDING POST...")
-      ctx.complete(addPost(myID, friendID, content))
-    case AddAlbum(ctx, userID, albumID, albumName) =>
-      println("ADDING ALBUM...")
-      ctx.complete(addAlbum(userID, albumID, albumName))
-    case CreatePage(ctx, page, session) =>
-      log.info("Creating page " + page.toString)
-
-      val id = new Identifier(getNextId)
-
-      val ent = new PageEnt(id,
-        name = page.name,
-        about = page.about,
-        business = page.business,
-        contact_address = page.contact_address,
-        description = page.description,
-        location = page.location,
-        phone_number = page.phone_number
-      )
-
-      pageMap += (id -> ent)
-      // TODO: must use update session id
-      session.setUserId(id)
-      ctx.complete(ent)
-    case RetrievePage(ctx, id) =>
+    // ################# Retrieval
+    case GetUser(ctx, id) =>
+      if (userExists(id)) {
+        ctx.complete(userById(id))
+      } else {
+        ctx.complete("Unknown ID")
+      }
+    case GetPage(ctx, id) =>
       if (pageMap.contains(id)) {
-        println("RETRIEVE PAGE")
-        ctx.complete(pageMap{id}.asInstanceOf[FacebookEntity])
+        ctx.complete(pageMap{id})
       } else {
         ctx.complete("Unknown ID")
       }
-    case RetrieveUser(ctx, id) =>
-      if (userMap.contains(id)) {
-        ctx.complete(userMap{id}.asInstanceOf[FacebookEntity])
-      } else {
-        ctx.complete("Unknown ID")
+    case GetPost(ctx, id) =>
+      log.info("TODO: GetPost")
+      ctx.complete((NotFound, "Not implemented"))
+    case GetAlbum(ctx, id) =>
+      log.info("TODO: GetAlbum")
+      ctx.complete((NotFound, "Not implemented"))
+    case GetPicture(ctx, id) =>
+      log.info("TODO: GetPicture")
+      ctx.complete((NotFound, "Not implemented"))
+
+    // ################# Actions
+    case AddFriend(ctx, requester, target) =>
+      log.info(s"Adding friend $requester <-> $target")
+      finalize(ctx, addFriend(requester, target))
+
+    // ################# Queries
+    case GetFriendsList(ctx, uid) =>
+      if(!userExists(uid)) {
+        ctx.complete((NotFound, "Could not find the user"))
       }
+
+      log.info("TODO: GetFriendsList")
+
+      ctx.complete("Not complete")
     case _ => log.debug("Unknown message")
   }
 
-  def addPost(requester : Identifier, target : Identifier, content : String) : (StatusCode, String) = {
-    // TODO : add post
-    println("NEEDS TO BE FIXED : addPost")
-    (OK, "Posting " + target)
+
+  /**
+    * Creates a new user with the specified form parameters and returns the resulting UserEnt
+    * @param form the user creation form
+    * @return FacebookResponse
+    */
+  def createUser(form : UserCreateForm) : FacebookResponse = {
+    val id = new Identifier(getNextId)
+
+    val ent = new UserEnt(id,
+      first_name = form.first_name,
+      last_name = form.last_name,
+      birthday = form.birthday,
+      gender = form.gender,
+      email = form.email,
+      about = form.about,
+      relationship_status = form.relationship_status,
+      interested_in = form.interested_in,
+      political = form.political,
+      tz = form.tz,
+      status = "" // TODO: either remove this field or get some data
+    )
+
+    // start with an empty friends list
+    friendsList += (id -> FriendsList(mutable.MutableList()))
+    userMap += (id -> ent)
+
+    (OK, ent)
   }
 
-  def addAlbum(requester : Identifier, albumID : Identifier, content : String) : (StatusCode, String) = {
-    // TODO : add album
-    println("NEEDS TO BE FIXED : addAlbum")
-    (OK, "Album " + albumID + " posted by " + requester)
+  /**
+    * Creates a new Facebook page
+    * @param form the input form for the page
+    * @return FacebookResponse
+    */
+  def createPage(form : PageCreateForm) : FacebookResponse = {
+    val id = new Identifier(getNextId)
+
+    val ent = new PageEnt(id,
+      name = form.name,
+      about = form.about,
+      business = form.business,
+      contact_address = form.contact_address,
+      description = form.description,
+      location = form.location,
+      phone_number = form.phone_number
+    )
+
+    pageMap += (id -> ent)
+
+    (OK, ent)
   }
 
-  def addFriend(requester : Identifier, target : Identifier) : (StatusCode, String) = {
-    val from = userById(requester)
-    val to = userById(target)
+  /**
+    * Creates a post as `requester` to be placed on `target`'s wall
+    * `target` can be any object that as a wall (User or Page)
+    * @param form form with the post creation parameters
+    * @return FacebookResponse
+    */
+  def createPost(form : PostCreateForm) : FacebookResponse = {
+    val id = getNextId
 
-    /*if(!from.contains()) {
+    log.info("TODO: createPost")
+
+    (OK, new PostEnt())
+  }
+
+  /**
+    * Creates a new album for pictures to be stored under
+    * @param form form fields for creating a album
+    * @return FacebookResponse
+    */
+  def createAlbum(form : AlbumCreateForm) : FacebookResponse = {
+    val id = getNextId
+
+    log.info("TODO: createAlbum")
+
+    (OK, new AlbumEnt())
+  }
+
+  /**
+    * Creates a new picture in an album
+    * @param form form fields for creating a picture
+    * @return FacebookResponse
+    */
+  def createPicture(form : PictureCreateForm) : FacebookResponse = {
+    val id = getNextId
+
+    log.info("TODO: createPicture")
+
+    (OK, new PictureEnt())
+  }
+
+  ////////////////////////////////////////////////////////
+  // Action functions
+  ////////////////////////////////////////////////////////
+
+  /**
+    * Makes two specified UIDs friends
+    * @param requester the person requesting the friend
+    * @param target the target of the person requesting the friend
+    * @return FacebookResponse
+    */
+  def addFriend(requester : Identifier, target : Identifier) : FacebookResponse = {
+    if(!userExists(requester)) {
       return (NotFound, "Invalid user ID")
     }
 
-    if(!to.contains()) {
+    if(!userExists(target)) {
       return (NotFound, "Invalid target ID")
-    }*/
+    }
 
-    //friendsLists{requester}.friends :+ target
-    //friendsLists{target}.friends :+ requester
+    val reqList = friendsList{requester}.friends
+    val tgtList = friendsList{target}.friends
 
-    println("NEEDS TO BE FIXED : addFriend in DataObjectActor.scala")
+    if(reqList.contains(target) || tgtList.contains(requester)) {
+      return (NotAcceptable, "You are already friends")
+    }
+
+    reqList += target
+    tgtList += requester
 
     (OK, "You are now friends with " + target)
   }
-  def userById(id : Identifier) : Option[UserEnt] = {
-    userMap.get(id)
+
+  ////////////////////////////////////////////////////////
+  // Helper functions
+  ////////////////////////////////////////////////////////
+
+  /**
+    * Gets a UserEnt by ID. The user ID must be valid
+    * @param id user ID
+    * @return UserEnt
+    */
+  def userById(id : Identifier) : UserEnt = {
+    if(!userExists(id))
+      throw new Exception("Invalid user id")
+
+    userMap.get(id).get
   }
 
+  /**
+    * Checks if a user ID is valid
+    * @param id user ID
+    * @return Boolean
+    */
+  def userExists(id : Identifier) : Boolean = {
+    userMap.contains(id)
+  }
+
+  /**
+    * Creates and returns a new unique identifier
+    * @return Identifier
+    */
   def getNextId = {
     val id = nextId
     nextId += 1

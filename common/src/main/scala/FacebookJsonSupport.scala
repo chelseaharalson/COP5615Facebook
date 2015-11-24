@@ -2,7 +2,6 @@ import java.util.TimeZone
 import org.joda.time.DateTime
 import spray.httpx.SprayJsonSupport
 import spray.json._
-import com.github.nscala_time.time.Imports._
 
 object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object IdentifierJsonFormat extends JsonFormat[Identifier] {
@@ -62,6 +61,14 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  ///////////////////////////////////////////////////
+
+  /**
+    * Adds FacebookEntity metadata to a JsObject
+    * @param obj
+    * @param ent
+    * @return JsObject
+    */
   def annotate(obj : JsObject, ent : FacebookEntity) = {
     var objFields = obj.fields
     objFields += (
@@ -69,38 +76,6 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
       "modified_time" -> JsString(ent.modified_time.toString)
       )
     JsObject(objFields)
-  }
-
-  implicit object FacebookEntityJsonFormat extends RootJsonFormat[FacebookEntity] {
-    def write(ent : FacebookEntity) = ent match {
-      case e : UserEnt =>
-        var objFields = e.toJson.asJsObject.fields
-        objFields += (
-          "id" -> JsString(e.id.toString),
-          "modified_time" -> JsString(e.modified_time.toString)
-        )
-
-        JsObject(objFields)
-
-      case p : PageEnt =>
-        var objFields = p.toJson.asJsObject.fields
-        objFields += (
-          "id" -> JsString(p.id.toString),
-          "modified_time" -> JsString(p.modified_time.toString)
-          )
-
-        JsObject(objFields)
-
-      case _ => serializationError("Unhandled FacebookEntity type")
-    }
-
-    def read(value : JsValue) = {
-      value.asJsObject.getFields("id", "object") match {
-        case Seq(JsString(id), JsObject(ob)) =>
-          new UserEnt()
-        case _ => deserializationError("Invalid FacebookEntity")
-      }
-    }
   }
 
   implicit object UserEntJsonFormat extends RootJsonFormat[UserEnt] {
@@ -169,6 +144,76 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
-  implicit val userCreateFormFormat  = jsonFormat10(UserCreateForm)
-  implicit val pageEntFormat = jsonFormat7(PageCreateForm)
+  implicit object PostEntJsonFormat extends RootJsonFormat[PostEnt] {
+    def write(ent : PostEnt) = {
+      annotate(JsObject(
+        "owner" -> ent.owner.toJson,
+        "target" -> ent.target.toJson,
+        "content" -> ent.content.toJson
+      ), ent)
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content") match {
+        case Seq(id, modified_time, owner, target, JsString(content)) =>
+          val ent = new PostEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
+            target.convertTo[Identifier], content
+          )
+          ent.modified_time = modified_time.convertTo[DateTime]
+          ent
+        case unk : Any => deserializationError("Invalid PostEnt format: " + unk.toString)
+      }
+    }
+  }
+
+  implicit object AlbumEntJsonFormat extends RootJsonFormat[AlbumEnt] {
+    def write(ent : AlbumEnt) = {
+      annotate(JsObject(
+        "owner" -> ent.owner.toJson,
+        "name" -> ent.name.toJson,
+        "description" -> ent.description.toJson
+      ), ent)
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "modified_time", "owner", "name", "description") match {
+        case Seq(id, modified_time, owner, JsString(name), JsString(content)) =>
+          val ent = new AlbumEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
+            name, content
+          )
+          ent.modified_time = modified_time.convertTo[DateTime]
+          ent
+        case unk : Any => deserializationError("Invalid AlbumEnt format: " + unk.toString)
+      }
+    }
+  }
+
+  implicit object PictureEntJsonFormat extends RootJsonFormat[PictureEnt] {
+    def write(ent : PictureEnt) = {
+      annotate(JsObject(
+        "album_id" -> ent.albumId.toJson,
+        "caption" -> ent.caption.toJson,
+        "file_id" -> ent.fileId.toJson
+      ), ent)
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "modified_time", "album_id", "caption", "file_id") match {
+        case Seq(id, modified_time, owner, JsString(caption), fileId) =>
+          val ent = new PictureEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
+            caption, fileId.convertTo[Identifier]
+          )
+          ent.modified_time = modified_time.convertTo[DateTime]
+          ent
+        case unk : Any => deserializationError("Invalid PictureEnt format: " + unk.toString)
+      }
+    }
+  }
+
+  // Forms JSON formats
+  implicit val userFormFormat  = jsonFormat10(UserCreateForm)
+  implicit val pageEntFormFormat = jsonFormat7(PageCreateForm)
+  implicit val postEntFormFormat = jsonFormat1(PostCreateForm)
+  implicit val albumEntFormFormat = jsonFormat2(AlbumCreateForm)
+  implicit val pictureFormFormat = jsonFormat2(PictureCreateForm)
 }
