@@ -2,23 +2,52 @@ import akka.actor.{Props, Cancellable, Actor, ActorSystem}
 import spray.http.HttpRequest
 import java.util.TimeZone
 import spray.client.pipelining._
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import com.github.nscala_time.time.Imports._
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 //import scala.concurrent.ExecutionContext.Implicits.global
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
 
-  schedulePosting(20000)
+  var userID = new Identifier(0)
+
+  var counter = 0
+
+  var friendList = ArrayBuffer[Identifier]()
+
+  schedulePosting(10000)
 
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
       createMember(pFirstName, pLastName, pGender)
     }
 
-    case AddFriends(numOfUsers) => {
-      println("Adding friends...")
+    case AddID(userID) => {
+      //println("Adding ID... MEMBER ACTOR")
+      context.actorSelection("../master") ! AddID(userID)
+    }
+
+    case AddFriendList(userList) => {
+      //println("FRIEND LIST : " + userList)
+      friendList = userList
+      println("FRIEND LIST : " + friendList)
+      /*for (i <- 0 until userList.size) {
+        import FacebookJsonSupport._
+        import scala.concurrent.ExecutionContext.Implicits.global
+        val pipeline: HttpRequest => Future[UserEnt] = (
+          addHeader("X-My-Special-Header", "fancy-value")
+            ~> sendReceive
+            ~> unmarshal[UserEnt]
+          )
+
+        /*val response: Future[UserEnt] =
+          pipeline(Post("http://localhost:8080/user", UserCreateForm(first_name, last_name, birthday, gender,
+            email, about, relationship_status, interested_in, political, tz)))*/
+
+      }*/
     }
   }
 
@@ -49,8 +78,34 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       pipeline(Post("http://localhost:8080/user", UserCreateForm(first_name, last_name, birthday, gender,
         email, about, relationship_status, interested_in, political, tz)))
 
+    response onComplete{
+      case Success(r) => {
+        userID = r.id
+        //println(userID)
+        context.self ! AddID(userID)
+      }
+      case Failure(e) => e
+    }
+
     response
   }
+
+  /*def getUser() : Future[UserEnt] = {
+    implicit val system = ActorSystem()
+    import system.dispatcher // execution context for futures
+    import FacebookJsonSupport._
+
+    val pipeline: HttpRequest => Future[UserEnt] = (
+      addHeader("X-My-Special-Header", "fancy-value")
+        ~> sendReceive
+        ~> unmarshal[UserEnt]
+      )
+
+    val response: Future[UserEnt] =
+      pipeline(Get("http://localhost:8080/user/test"))
+
+    response
+  }*/
 
   def createMember(pFirstName: String, pLastName: String, pGender: Gender.EnumVal) = {
     val user = new User()

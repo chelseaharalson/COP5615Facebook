@@ -25,6 +25,7 @@ class PageActor(implicit system: ActorSystem) extends Actor {
     val pageContactAddressFile = page.parseFile("TextFiles/Address.txt")
     val pageContactAddress = page.generatePageInformation(pageContactAddressFile)
     val pageDescFile = page.parseFile("TextFiles/About.txt")
+    val pageDesc = page.generatePageInformation(pageDescFile)
     val pageLocationFile = page.parseFile("TextFiles/Locations.txt")
     val pageLocation = page.generatePageInformation(pageLocationFile)
     val pagePhoneNumFile = page.parseFile("TextFiles/Phone.txt")

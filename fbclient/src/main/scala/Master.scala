@@ -1,3 +1,4 @@
+import scala.util.Random
 import akka.actor._
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
@@ -6,6 +7,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class Master(implicit system: ActorSystem) extends Actor {
+
+  var userIDlist = ArrayBuffer[Identifier]()
+
+  val numOfFriends = 20
 
   // Users - large set
   /*val fileGirlNames = "TextFiles/GirlNames.txt"
@@ -19,7 +24,7 @@ class Master(implicit system: ActorSystem) extends Actor {
 
   // Small sample - used for testing
   var girlFirstNames = Array("Emma",
-    "Olivia"/*,
+    "Olivia",
     "Sophia",
     "Isabella",
     "Ava",
@@ -27,7 +32,7 @@ class Master(implicit system: ActorSystem) extends Actor {
     "Emily",
     "Abigail",
     "Madison",
-    "Charlotte"*/)
+    "Charlotte")
 
   var boyFirstNames = Array("Noah",
     "Liam"/*,
@@ -75,9 +80,32 @@ class Master(implicit system: ActorSystem) extends Actor {
     }
 
     case AddFriends(numOfUsers) => {
+      var r = 0
+      var r2 = 0
+      var c = 0
+      var friendList = ArrayBuffer[Identifier]()
+
       for (i <- 1 to numOfUsers) {
-        context.actorSelection("../" + i.toString()) ! AddFriends(numOfUsers)
+        friendList.clear()
+        c = 0
+        r = Random.nextInt(numOfFriends)
+        r = r + 2
+        do {
+          r2 = Random.nextInt(r)
+          if (!userIDlist(r2).equals(null) && !friendList.contains(userIDlist(r2))) {
+            friendList.+=(userIDlist(r2))
+            c = c + 1
+          }
+        } while(c < r);
+
+        context.actorSelection("../" + i.toString()) ! AddFriendList(friendList)
       }
+    }
+
+    case AddID(userID) => {
+      //println("ADDING ID...")
+      userIDlist.+=(userID)
+      //println(userIDlist)
     }
   }
 
