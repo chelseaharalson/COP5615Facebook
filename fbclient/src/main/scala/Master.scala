@@ -80,23 +80,22 @@ class Master(implicit system: ActorSystem) extends Actor {
     }
 
     case AddFriends(numOfUsers) => {
-      var r = 0
-      var r2 = 0
+      var amtOfFriends = 0
+      var randFriend = 0
       var c = 0
       var friendList = ArrayBuffer[Identifier]()
 
       for (i <- 1 to numOfUsers) {
         friendList.clear()
         c = 0
-        r = Random.nextInt(numOfFriends)
-        r = r + 2
+        amtOfFriends = Random.nextInt(numOfFriends)
         do {
-          r2 = Random.nextInt(r)
-          if (!userIDlist(r2).equals(null) && !friendList.contains(userIDlist(r2))) {
-            friendList.+=(userIDlist(r2))
+          randFriend = Random.nextInt(amtOfFriends)
+          if (!userIDlist(randFriend).equals(null) && amtOfFriends >= 0 && !friendList.contains(userIDlist(randFriend))) {
+            friendList.+=(userIDlist(randFriend))
             c = c + 1
           }
-        } while(c < r);
+        } while(c < amtOfFriends);
 
         context.actorSelection("../" + i.toString()) ! AddFriendList(friendList)
       }
