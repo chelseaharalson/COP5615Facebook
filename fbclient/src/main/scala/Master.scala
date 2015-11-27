@@ -89,13 +89,14 @@ class Master(implicit system: ActorSystem) extends Actor {
       for (i <- 1 to numOfUsers) {
         friendList.clear()
         c = 0
-        amtOfFriends = Math.abs(Random.nextInt(numOfFriends)) + 2
+        //amtOfFriends = Math.abs(Random.nextInt(numOfFriends)) + 2
         //amtOfFriends = Math.random() * numOfFriends
+        amtOfFriends = Math.abs(realRandom(numOfFriends)) + 2
         do {
           var randFriend = 0
-          randFriend = Math.abs(Random.nextInt(amtOfFriends)) + 1
+          //randFriend = Math.abs(Random.nextInt(amtOfFriends)) + 1
           //randFriend = Math.random() * amtOfFriends
-          //randFriend = getRealRandom(amtOfFriends)
+          randFriend = realRandom(amtOfFriends)
           if (userIDlist(randFriend) != null && amtOfFriends > 0 && !friendList.contains(userIDlist(randFriend))) {
             //println("Random Friend: " + randFriend + "  Amount of Friends: " + amtOfFriends)
             friendList.+=(userIDlist(randFriend))
@@ -103,6 +104,8 @@ class Master(implicit system: ActorSystem) extends Actor {
           }
         } while(c < amtOfFriends);
 
+        //println(friendList)
+        Thread.sleep(500)
         context.actorSelection("../" + i.toString()) ! AddFriendList(friendList)
       }
     }
@@ -122,14 +125,11 @@ class Master(implicit system: ActorSystem) extends Actor {
     rfile
   }
 
-  /*def getRealRandom(amt : Int) : Int = {
-    var r = Random.nextInt(999)
-    var r1 = 0.0
-    println("BEFORE: " + r)
-    r1 = ((r / 100) * amt)
-    r = r1.toInt
-    println(r1)
-    r
-  }*/
+  def realRandom(r : Int) : Int = {
+    var i = Random.nextInt(1000)
+    var f = i.toFloat / 1000
+    var f1 = f * r
+    f1.toInt
+  }
 
 }
