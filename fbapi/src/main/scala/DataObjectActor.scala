@@ -11,6 +11,7 @@ case class RetrieveUser(ctx : RequestContext, id : Identifier)
 case class AddFriend(ctx : RequestContext, requester : Identifier, target : Identifier)
 case class AddFriendX(ctx : RequestContext, myID : Identifier, friendID : Identifier)
 case class AddPost(ctx : RequestContext, myID : Identifier, friendID : Identifier, content : String)
+case class AddAlbum(ctx : RequestContext, albumID : Identifier, albumName : String)
 
 class DataObjectActor extends Actor with ActorLogging {
   var userMap = mutable.HashMap[Identifier, UserEnt]()
@@ -52,6 +53,9 @@ class DataObjectActor extends Actor with ActorLogging {
     case AddPost(ctx, myID, friendID, content) =>
       println("ADDING POST...")
       ctx.complete(addPost(myID, friendID, content))
+    case AddAlbum(ctx, albumID, albumName) =>
+      println("ADDING ALBUM...")
+      ctx.complete(addAlbum(albumID, albumName))
     case RetrieveUser(ctx, id) =>
       if (userMap.contains(id)) {
         ctx.complete(userMap{id}.asInstanceOf[FacebookEntity])
@@ -65,6 +69,12 @@ class DataObjectActor extends Actor with ActorLogging {
     // TODO : add post
     println("NEEDS TO BE FIXED : addPost")
     (OK, "Posting " + target)
+  }
+
+  def addAlbum(requester : Identifier, content : String) : (StatusCode, String) = {
+    // TODO : add album
+    println("NEEDS TO BE FIXED : addAlbum")
+    (OK, "Album " + requester)
   }
 
   def addFriend(requester : Identifier, target : Identifier) : (StatusCode, String) = {

@@ -25,6 +25,8 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   schedulePosting(randomTime+10000)
 
+  scheduleAlbumPosting(randomTime+10000)
+
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
       createMember(pFirstName, pLastName, pGender)
@@ -65,6 +67,18 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       schedulePosting(rt)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
+    }
+
+    case DoAlbum(albumName) => {
+      var aName : String = albumName
+      aName = aName.replaceAll(" ","%20")
+      val s = new SendMessages()
+      val s1 = userID.toString
+      var rt = Random.nextInt(60000)
+      s.send("/user/add_album/"+s1+"/"+aName)
+      scheduleAlbumPosting(rt)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
     }
 
   }
@@ -108,23 +122,6 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     response
   }
 
-  /*def getUser() : Future[UserEnt] = {
-    implicit val system = ActorSystem()
-    import system.dispatcher // execution context for futures
-    import FacebookJsonSupport._
-
-    val pipeline: HttpRequest => Future[UserEnt] = (
-      addHeader("X-My-Special-Header", "fancy-value")
-        ~> sendReceive
-        ~> unmarshal[UserEnt]
-      )
-
-    val response: Future[UserEnt] =
-      pipeline(Get("http://localhost:8080/user/test"))
-
-    response
-  }*/
-
   def createMember(pFirstName: String, pLastName: String, pGender: Gender.EnumVal) = {
     val user = new User()
 
@@ -165,27 +162,17 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     }
   }
 
-  /*def doPost(myID : Integer, friendID : Integer, content : String) = {
-    val timePosted = System.currentTimeMillis()
-    var post : String = content
-    post = "User " + myID + " posted to " + friendID + " : " + content
+  def scheduleAlbumPosting(mili : Long) {
+    //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
+    val user = new User()
+    val fileStatus = "TextFiles/Status.txt"
+    val posts = user.parseFile(fileStatus)
+    val albumName = user.generateStatus(posts)
 
-    /*import scala.concurrent.ExecutionContext.Implicits.global
-    import FacebookJsonSupport._
-
-    val pipeline: HttpRequest => Future[UserEnt] = (
-      addHeader("X-My-Special-Header", "fancy-value")
-        ~> sendReceive
-        ~> unmarshal[UserEnt]
-      )*/
-
-    println(post)
-
-    /*val response: Future[UserEnt] =
-      pipeline(Post("http://localhost:8080/user", UserCreateForm(content)))*/
-  }*/
-
-  def addFriends(numOfFriends : Int, numOfMembers : Int) = {
-
+    import system.dispatcher
+    system.scheduler.scheduleOnce(mili milliseconds) {
+      self ! DoAlbum(albumName)
+    }
   }
+
 }
