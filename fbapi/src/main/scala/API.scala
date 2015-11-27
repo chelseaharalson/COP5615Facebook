@@ -109,10 +109,10 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
           objectActor ! AddPost(ctx, new Identifier(myID), new Identifier(friendID), content)
         }
       } ~
-      path("add_album" / Segment / Segment) { (albumID,albumName) =>
+      path("add_album" / Segment / Segment / Segment) { (userID,albumID,albumName) =>
         get { ctx =>
-          println(albumName)
-          objectActor ! AddAlbum(ctx, new Identifier(albumID), albumName)
+          println("ALBUM NAME FROM SERVER: " + albumName)
+          objectActor ! AddAlbum(ctx, new Identifier(userID), new Identifier(albumID), albumName)
         }
       } ~
       /*path("status") {

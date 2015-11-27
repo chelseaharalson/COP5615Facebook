@@ -23,6 +23,8 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   var randomTime = Random.nextInt(50000)
 
+  var albumCount = 0
+
   schedulePosting(randomTime+10000)
 
   scheduleAlbumPosting(randomTime+10000)
@@ -74,8 +76,9 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       aName = aName.replaceAll(" ","%20")
       val s = new SendMessages()
       val s1 = userID.toString
+      val s2 = albumCount.toString
       var rt = Random.nextInt(60000)
-      s.send("/user/add_album/"+s1+"/"+aName)
+      s.send("/user/add_album/"+s1+"/"+s2+"/"+aName)
       scheduleAlbumPosting(rt)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
@@ -168,6 +171,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     val fileStatus = "TextFiles/Status.txt"
     val posts = user.parseFile(fileStatus)
     val albumName = user.generateStatus(posts)
+    albumCount = albumCount + 1
 
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
