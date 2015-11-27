@@ -115,6 +115,11 @@ class Master(implicit system: ActorSystem) extends Actor {
       userIDlist.+=(userID)
       //println(userIDlist)
     }
+
+    /*case CreatePages => {
+      val pg = new Page()
+      pg.createPage()
+    }*/
   }
 
   def parseFile(fileName: String): ArrayBuffer[String] = {

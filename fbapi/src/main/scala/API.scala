@@ -183,16 +183,17 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
     } ~
     pathPrefix("page") {
       ObjectID { id =>
-        get {
-          complete {
-            s"Page $id"
-          }
+        get { ctx =>
+          objectActor ! RetrievePage(ctx, new Identifier(id))
         }
       } ~
       post {
-        complete {
-          "Creating page"
+        //complete {
+        // Receive a JSON entity that acts as a form
+        entity(as[PageCreateForm]) { page => ctx =>
+          objectActor ! CreatePage(ctx, page, session)
         }
+        //}
       }
     } ~
     pathPrefix("like") {

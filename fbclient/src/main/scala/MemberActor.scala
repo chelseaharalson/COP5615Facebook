@@ -14,19 +14,13 @@ import scala.util.Random
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
-
   var userID = new Identifier(0)
-
   var counter = 0
-
   var friendList = ArrayBuffer[Identifier]()
-
   var randomTime = Random.nextInt(50000)
-
   var albumCount = 0
 
   schedulePosting(randomTime+10000)
-
   scheduleAlbumPosting(randomTime+10000)
 
   def receive = {
@@ -103,11 +97,6 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
         ~> sendReceive
         ~> unmarshal[UserEnt]
       )
-
-    /*val response: Future[UserEnt] =
-      pipeline(Post("http://localhost:8080/user", UserCreateForm("Chelsea", "Metcalf", DateTime.now, Gender.Female,
-        "chelsea.metcalf@gmail.com", "Test about", RelationshipStatus.Single,
-        Gender.Male, PoliticalAffiliation.Democrat, TimeZone.getDefault)))*/
 
     val response: Future[UserEnt] =
       pipeline(Post("http://localhost:8080/user", UserCreateForm(first_name, last_name, birthday, gender,

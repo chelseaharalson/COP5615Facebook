@@ -1,11 +1,11 @@
 class PageEnt(id : Identifier,
-                   name : String,
-                   about : String,
-                   business : String,
-                   contact_address : String,
-                   description : String,
-                   location : String,
-                   phone_number : String) extends FacebookEntity(id) {
+                   var name : String,
+                   var about : String,
+                   var business : String,
+                   var contact_address : String,
+                   var description : String,
+                   var location : String,
+                   var phone_number : String) extends FacebookEntity(id) {
 
   def this() = this(new Identifier(0), "", "", "", "", "", "", "")
 }

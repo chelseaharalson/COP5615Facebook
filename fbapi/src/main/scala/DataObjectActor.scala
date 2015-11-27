@@ -2,7 +2,6 @@ import akka.actor.{ActorLogging, Actor}
 import spray.routing.RequestContext
 import spray.http.StatusCodes._
 import spray.http.{StatusCode, StatusCodes}
-
 import scala.collection.mutable
 import FacebookJsonSupport._
 
@@ -12,11 +11,14 @@ case class AddFriend(ctx : RequestContext, requester : Identifier, target : Iden
 case class AddFriendX(ctx : RequestContext, myID : Identifier, friendID : Identifier)
 case class AddPost(ctx : RequestContext, myID : Identifier, friendID : Identifier, content : String)
 case class AddAlbum(ctx : RequestContext, userID : Identifier, albumID : Identifier, albumName : String)
+case class CreatePage(ctx : RequestContext, page : PageCreateForm, session : Session)
+case class RetrievePage(ctx : RequestContext, id : Identifier)
 
 class DataObjectActor extends Actor with ActorLogging {
   var userMap = mutable.HashMap[Identifier, UserEnt]()
   var friendsLists = mutable.HashMap[Identifier, FriendsList]()
   var nextId = 0
+  var pageMap = mutable.HashMap[Identifier, PageEnt]()
 
   def receive = {
     case CreateUser(ctx, user, session) =>
@@ -56,6 +58,31 @@ class DataObjectActor extends Actor with ActorLogging {
     case AddAlbum(ctx, userID, albumID, albumName) =>
       println("ADDING ALBUM...")
       ctx.complete(addAlbum(userID, albumID, albumName))
+    case CreatePage(ctx, page, session) =>
+      log.info("Creating page " + page.toString)
+
+      val id = new Identifier(getNextId)
+
+      val ent = new PageEnt(id,
+        name = page.name,
+        about = page.about,
+        business = page.business,
+        contact_address = page.contact_address,
+        description = page.description,
+        location = page.location,
+        phone_number = page.phone_number
+      )
+
+      pageMap += (id -> ent)
+      // TODO: must use update session id
+      session.setUserId(id)
+      ctx.complete(ent)
+    case RetrievePage(ctx, id) =>
+      if (pageMap.contains(id)) {
+        ctx.complete(pageMap{id}.asInstanceOf[FacebookEntity])
+      } else {
+        ctx.complete("Unknown ID")
+      }
     case RetrieveUser(ctx, id) =>
       if (userMap.contains(id)) {
         ctx.complete(userMap{id}.asInstanceOf[FacebookEntity])
