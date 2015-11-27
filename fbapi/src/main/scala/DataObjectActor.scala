@@ -9,6 +9,8 @@ import FacebookJsonSupport._
 case class CreateUser(ctx : RequestContext, user : UserCreateForm, session : Session)
 case class RetrieveUser(ctx : RequestContext, id : Identifier)
 case class AddFriend(ctx : RequestContext, requester : Identifier, target : Identifier)
+case class AddFriendX(ctx : RequestContext, myID : Identifier, friendID : Identifier)
+case class AddPost(ctx : RequestContext, myID : Identifier, friendID : Identifier, content : String)
 
 class DataObjectActor extends Actor with ActorLogging {
   var userMap = mutable.HashMap[Identifier, UserEnt]()
@@ -44,6 +46,12 @@ class DataObjectActor extends Actor with ActorLogging {
     case AddFriend(ctx, requester, target) =>
       log.info(s"Adding friends $requester <-> $target")
       ctx.complete(addFriend(requester, target))
+    case AddFriendX(ctx, myID, friendID) =>
+      println("ADD FRIEND WORKS!!")
+      ctx.complete(addFriend(myID, friendID))
+    case AddPost(ctx, myID, friendID, content) =>
+      println("ADDING POST...")
+      ctx.complete(addPost(myID, friendID, content))
     case RetrieveUser(ctx, id) =>
       if (userMap.contains(id)) {
         ctx.complete(userMap{id}.asInstanceOf[FacebookEntity])
@@ -53,20 +61,28 @@ class DataObjectActor extends Actor with ActorLogging {
     case _ => log.debug("Unknown message")
   }
 
+  def addPost(requester : Identifier, target : Identifier, content : String) : (StatusCode, String) = {
+    // TODO : add post
+    println("NEEDS TO BE FIXED : addPost")
+    (OK, "Posting " + target)
+  }
+
   def addFriend(requester : Identifier, target : Identifier) : (StatusCode, String) = {
     val from = userById(requester)
     val to = userById(target)
 
-    if(!from.contains()) {
+    /*if(!from.contains()) {
       return (NotFound, "Invalid user ID")
     }
 
     if(!to.contains()) {
       return (NotFound, "Invalid target ID")
-    }
+    }*/
 
-    friendsLists{requester}.friends :+ target
-    friendsLists{target}.friends :+ requester
+    //friendsLists{requester}.friends :+ target
+    //friendsLists{target}.friends :+ requester
+
+    println("NEEDS TO BE FIXED : addFriend in DataObjectActor.scala")
 
     (OK, "You are now friends with " + target)
   }

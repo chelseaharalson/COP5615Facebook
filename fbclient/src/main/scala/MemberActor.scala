@@ -1,5 +1,7 @@
 import akka.actor.{Props, Cancellable, Actor, ActorSystem}
-import spray.http.HttpRequest
+import akka.io.IO
+import spray.can.Http
+import spray.http.{HttpResponse, HttpRequest}
 import java.util.TimeZone
 import spray.client.pipelining._
 import scala.collection.mutable.ArrayBuffer
@@ -7,6 +9,7 @@ import scala.concurrent.Future
 import com.github.nscala_time.time.Imports._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import scala.util.Random
 //import scala.concurrent.ExecutionContext.Implicits.global
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
@@ -18,15 +21,18 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   var friendList = ArrayBuffer[Identifier]()
 
-  schedulePosting(10000)
+  var randomTime = Random.nextInt(50000)
+
+  schedulePosting(randomTime+10000)
 
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
       createMember(pFirstName, pLastName, pGender)
     }
 
-    case AddID(userID) => {
+    case AddID(pUserID) => {
       //println("Adding ID... MEMBER ACTOR")
+      userID = pUserID
       context.actorSelection("../master") ! AddID(userID)
     }
 
@@ -34,21 +40,33 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       //println("FRIEND LIST : " + userList)
       friendList = userList
       println("FRIEND LIST : " + friendList)
-      /*for (i <- 0 until userList.size) {
-        import FacebookJsonSupport._
-        import scala.concurrent.ExecutionContext.Implicits.global
-        val pipeline: HttpRequest => Future[UserEnt] = (
-          addHeader("X-My-Special-Header", "fancy-value")
-            ~> sendReceive
-            ~> unmarshal[UserEnt]
-          )
 
-        /*val response: Future[UserEnt] =
-          pipeline(Post("http://localhost:8080/user", UserCreateForm(first_name, last_name, birthday, gender,
-            email, about, relationship_status, interested_in, political, tz)))*/
+      val s = new SendMessages()
 
-      }*/
+      for (i <- 0 until friendList.size) {
+        val s1 = userID.toString
+        val s2 = friendList(i).toString
+        s.send("/user/add_friendx/"+s1+"/"+s2)
+      }
     }
+
+    case DoPost(content) => {
+      val timePosted = System.currentTimeMillis()
+      var r = Random.nextInt(friendList.size-1)
+      var post : String = content
+      post = "User " + userID + " posted to " + friendList(r) + " : " + content
+      post = post.replaceAll(" ","%20")
+      val s = new SendMessages()
+      val s1 = userID.toString
+      val s2 = friendList(r).toString
+      s.send("/user/add_post/"+s1+"/"+s2+"/"+post)
+      //println(post)
+      var rt = Random.nextInt(60000)
+      schedulePosting(rt)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
+    }
+
   }
 
   def addMember(first_name : String,
@@ -132,20 +150,22 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     addMember(firstName, lastName, birthday, gender, email, about, relationshipStatus, interestedIn, political, tz)
   }
 
-  def schedulePosting(mili : Long) = {
+  def schedulePosting(mili : Long) {
     //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
     val user = new User()
     val fileStatus = "TextFiles/Status.txt"
     val posts = user.parseFile(fileStatus)
     val userPost = user.generateStatus(posts)
 
+    //var r = Random.nextInt(friendList.size-1)
+
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
-      self ! doPost(1, 2, userPost)
+      self ! DoPost(userPost)
     }
   }
 
-  def doPost(myID : Integer, friendID : Integer, content : String) = {
+  /*def doPost(myID : Integer, friendID : Integer, content : String) = {
     val timePosted = System.currentTimeMillis()
     var post : String = content
     post = "User " + myID + " posted to " + friendID + " : " + content
@@ -163,7 +183,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
     /*val response: Future[UserEnt] =
       pipeline(Post("http://localhost:8080/user", UserCreateForm(content)))*/
-  }
+  }*/
 
   def addFriends(numOfFriends : Int, numOfMembers : Int) = {
 

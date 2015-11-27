@@ -10,7 +10,7 @@ class Master(implicit system: ActorSystem) extends Actor {
 
   var userIDlist = ArrayBuffer[Identifier]()
 
-  val numOfFriends = 20
+  val numOfFriends = 10
 
   // Users - large set
   /*val fileGirlNames = "TextFiles/GirlNames.txt"
@@ -80,18 +80,24 @@ class Master(implicit system: ActorSystem) extends Actor {
     }
 
     case AddFriends(numOfUsers) => {
+      // TODO : fix random CM
       var amtOfFriends = 0
-      var randFriend = 0
+
       var c = 0
       var friendList = ArrayBuffer[Identifier]()
 
       for (i <- 1 to numOfUsers) {
         friendList.clear()
         c = 0
-        amtOfFriends = Random.nextInt(numOfFriends)
+        amtOfFriends = Math.abs(Random.nextInt(numOfFriends)) + 2
+        //amtOfFriends = Math.random() * numOfFriends
         do {
-          randFriend = Random.nextInt(amtOfFriends)
-          if (!userIDlist(randFriend).equals(null) && amtOfFriends >= 0 && !friendList.contains(userIDlist(randFriend))) {
+          var randFriend = 0
+          randFriend = Math.abs(Random.nextInt(amtOfFriends)) + 1
+          //randFriend = Math.random() * amtOfFriends
+          //randFriend = getRealRandom(amtOfFriends)
+          if (userIDlist(randFriend) != null && amtOfFriends > 0 && !friendList.contains(userIDlist(randFriend))) {
+            //println("Random Friend: " + randFriend + "  Amount of Friends: " + amtOfFriends)
             friendList.+=(userIDlist(randFriend))
             c = c + 1
           }
@@ -115,5 +121,15 @@ class Master(implicit system: ActorSystem) extends Actor {
     }
     rfile
   }
+
+  /*def getRealRandom(amt : Int) : Int = {
+    var r = Random.nextInt(999)
+    var r1 = 0.0
+    println("BEFORE: " + r)
+    r1 = ((r / 100) * amt)
+    r = r1.toInt
+    println(r1)
+    r
+  }*/
 
 }

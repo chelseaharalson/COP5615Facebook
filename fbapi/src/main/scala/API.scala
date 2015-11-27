@@ -97,6 +97,18 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
           objectActor ! AddFriend(ctx, session.getCurrentUser(), new Identifier(id))
         }
       } ~
+      path("add_friendx" / Segment / Segment) { (myID,friendID) =>
+        get { ctx =>
+          println("TEST!!!! SERVER")
+          objectActor ! AddFriendX(ctx, new Identifier(myID), new Identifier(friendID))
+        }
+      } ~
+        path("add_post" / Segment / Segment / Segment) { (myID,friendID,content) =>
+          get { ctx =>
+            println(content)
+            objectActor ! AddPost(ctx, new Identifier(myID), new Identifier(friendID), content)
+          }
+        } ~
       /*path("status") {
         entity(as[UserSetStatusForm]) { form => ctx =>
           post {
