@@ -81,6 +81,16 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
         )
 
         JsObject(objFields)
+
+      case p : PageEnt =>
+        var objFields = p.toJson.asJsObject.fields
+        objFields += (
+          "id" -> JsString(p.id.toString),
+          "modified_time" -> JsString(p.modified_time.toString)
+          )
+
+        JsObject(objFields)
+
       case _ => serializationError("Unhandled FacebookEntity type")
     }
 

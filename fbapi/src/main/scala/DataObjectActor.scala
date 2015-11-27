@@ -79,6 +79,7 @@ class DataObjectActor extends Actor with ActorLogging {
       ctx.complete(ent)
     case RetrievePage(ctx, id) =>
       if (pageMap.contains(id)) {
+        println("RETRIEVE PAGE")
         ctx.complete(pageMap{id}.asInstanceOf[FacebookEntity])
       } else {
         ctx.complete("Unknown ID")

@@ -49,6 +49,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   }
 
   var map = mutable.HashMap[Identifier, UserEnt]()
+  var pageMap = mutable.HashMap[Identifier, PageEnt]()
 
   // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
