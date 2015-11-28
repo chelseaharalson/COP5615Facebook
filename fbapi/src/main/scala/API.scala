@@ -1,5 +1,7 @@
+import java.io.{FileOutputStream, File}
 import java.util.TimeZone
 import akka.util.Timeout
+import spray.http.MultipartFormData
 import spray.http.StatusCodes.Unauthorized
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
@@ -49,6 +51,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   }
 
   var map = mutable.HashMap[Identifier, UserEnt]()
+  var pageMap = mutable.HashMap[Identifier, PageEnt]()
 
   // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
@@ -96,6 +99,38 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         post { ctx =>
           objectActor ! AddFriend(ctx, session.getCurrentUser(), new Identifier(id))
         }
+      } ~
+      path("add_friendx" / Segment / Segment) { (myID,friendID) =>
+        get { ctx =>
+          println("TEST!!!! SERVER")
+          objectActor ! AddFriendX(ctx, new Identifier(myID), new Identifier(friendID))
+        }
+      } ~
+      path("add_post" / Segment / Segment / Segment) { (myID,friendID,content) =>
+        get { ctx =>
+          println(content)
+          objectActor ! AddPost(ctx, new Identifier(myID), new Identifier(friendID), content)
+        }
+      } ~
+      path("add_album" / Segment / Segment / Segment) { (userID,albumID,albumName) =>
+        get { ctx =>
+          println("ALBUM NAME FROM SERVER: " + albumName)
+          objectActor ! AddAlbum(ctx, new Identifier(userID), new Identifier(albumID), albumName)
+        }
+      } ~
+      path("image") {
+        post {
+          entity(as[MultipartFormData]) {
+            formData => {
+              val ftmp = File.createTempFile("upload", ".tmp", new File("tmp"))
+              val output = new FileOutputStream(ftmp)
+              formData.fields.foreach(f => output.write(f.entity.data.toByteArray ) )
+              output.close()
+              complete("done, file in: " + ftmp.getName())
+            }
+          }
+        }
+
       } ~
       /*path("status") {
         entity(as[UserSetStatusForm]) { form => ctx =>
@@ -165,16 +200,17 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
     } ~
     pathPrefix("page") {
       ObjectID { id =>
-        get {
-          complete {
-            s"Page $id"
-          }
+        get { ctx =>
+          objectActor ! RetrievePage(ctx, new Identifier(id))
         }
       } ~
       post {
-        complete {
-          "Creating page"
+        //complete {
+        // Receive a JSON entity that acts as a form
+        entity(as[PageCreateForm]) { page => ctx =>
+          objectActor ! CreatePage(ctx, page, session)
         }
+        //}
       }
     } ~
     pathPrefix("like") {

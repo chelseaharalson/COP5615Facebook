@@ -1,3 +1,4 @@
+import scala.util.Random
 import akka.actor._
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
@@ -6,6 +7,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class Master(implicit system: ActorSystem) extends Actor {
+
+  var userIDlist = ArrayBuffer[Identifier]()
+
+  val numOfFriends = 10
 
   // Users - large set
   /*val fileGirlNames = "TextFiles/GirlNames.txt"
@@ -19,7 +24,7 @@ class Master(implicit system: ActorSystem) extends Actor {
 
   // Small sample - used for testing
   var girlFirstNames = Array("Emma",
-    "Olivia"/*,
+    "Olivia",
     "Sophia",
     "Isabella",
     "Ava",
@@ -27,7 +32,7 @@ class Master(implicit system: ActorSystem) extends Actor {
     "Emily",
     "Abigail",
     "Madison",
-    "Charlotte"*/)
+    "Charlotte")
 
   var boyFirstNames = Array("Noah",
     "Liam"/*,
@@ -59,7 +64,6 @@ class Master(implicit system: ActorSystem) extends Actor {
           counter = counter + 1
           val t = system.actorOf(Props(new MemberActor()), counter.toString)
           t ! CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female)
-          //system2.scheduler.scheduleOnce(1000 milliseconds, t, CreateUser(girlFirstNames(iFN), lastNames(iLN), Gender.Female))
         }
       }
 
@@ -71,14 +75,45 @@ class Master(implicit system: ActorSystem) extends Actor {
         }
       }
 
-      Thread.sleep(5000)
+      Thread.sleep(10000)
       context.self ! AddFriends(counter)
     }
 
     case AddFriends(numOfUsers) => {
+      // TODO : fix random CM
+      var amtOfFriends = 0
+
+      var c = 0
+      var friendList = ArrayBuffer[Identifier]()
+
       for (i <- 1 to numOfUsers) {
-        context.actorSelection("../" + i.toString()) ! AddFriends(numOfUsers)
+        friendList.clear()
+        c = 0
+        //amtOfFriends = Math.abs(Random.nextInt(numOfFriends)) + 2
+        //amtOfFriends = Math.random() * numOfFriends
+        amtOfFriends = Math.abs(realRandom(numOfFriends)) + 2
+        do {
+          var randFriend = 0
+          //randFriend = Math.abs(Random.nextInt(amtOfFriends)) + 1
+          //randFriend = Math.random() * amtOfFriends
+          randFriend = realRandom(amtOfFriends)
+          if (userIDlist(randFriend) != null && amtOfFriends > 0 && !friendList.contains(userIDlist(randFriend))) {
+            //println("Random Friend: " + randFriend + "  Amount of Friends: " + amtOfFriends)
+            friendList.+=(userIDlist(randFriend))
+            c = c + 1
+          }
+        } while(c < amtOfFriends);
+
+        //println(friendList)
+        Thread.sleep(500)
+        context.actorSelection("../" + i.toString()) ! AddFriendList(friendList)
       }
+    }
+
+    case AddID(userID) => {
+      //println("ADDING ID...")
+      userIDlist.+=(userID)
+      //println(userIDlist)
     }
   }
 
@@ -88,6 +123,13 @@ class Master(implicit system: ActorSystem) extends Actor {
       rfile += line
     }
     rfile
+  }
+
+  def realRandom(r : Int) : Int = {
+    var i = Random.nextInt(1000)
+    var f = i.toFloat / 1000
+    var f1 = f * r
+    f1.toInt
   }
 
 }

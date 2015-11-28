@@ -1,7 +1,5 @@
 import java.util.TimeZone
-
 import org.joda.time.DateTime
-
 import spray.httpx.SprayJsonSupport
 import spray.json._
 import com.github.nscala_time.time.Imports._
@@ -83,6 +81,16 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
         )
 
         JsObject(objFields)
+
+      case p : PageEnt =>
+        var objFields = p.toJson.asJsObject.fields
+        objFields += (
+          "id" -> JsString(p.id.toString),
+          "modified_time" -> JsString(p.modified_time.toString)
+          )
+
+        JsObject(objFields)
+
       case _ => serializationError("Unhandled FacebookEntity type")
     }
 
@@ -132,6 +140,35 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  implicit object PageEntJsonFormat extends RootJsonFormat[PageEnt] {
+    def write(ent : PageEnt) = {
+      annotate(JsObject(
+        "name" -> JsString(ent.name),
+        "about" -> JsString(ent.about),
+        "business" -> JsString(ent.business),
+        "contact_address" -> JsString(ent.contact_address),
+        "description" -> JsString(ent.description),
+        "location" -> JsString(ent.location),
+        "phone_number" -> JsString(ent.phone_number)
+      ), ent)
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("id", "modified_time", "name", "about", "business",
+        "contact_address", "description", "location", "phone_number") match {
+        case Seq(id, modified_time, JsString(name), JsString(about), JsString(business),
+        JsString(contact_address), JsString(description), JsString(location), JsString(phone_number)
+        ) =>
+          val ent = new PageEnt(id.convertTo[Identifier], name, about, business,
+            contact_address, description, location, phone_number
+          )
+          ent.modified_time = modified_time.convertTo[DateTime]
+          ent
+        case unk : Any => deserializationError("Invalid PageEnt format: " + unk.toString)
+      }
+    }
+  }
+
   implicit val userCreateFormFormat  = jsonFormat10(UserCreateForm)
-  //implicit val pageEntFormat = jsonFormat8(PageEnt)
+  implicit val pageEntFormat = jsonFormat7(PageCreateForm)
 }
