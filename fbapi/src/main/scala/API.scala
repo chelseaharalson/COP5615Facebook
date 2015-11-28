@@ -1,5 +1,7 @@
+import java.io.{FileOutputStream, File}
 import java.util.TimeZone
 import akka.util.Timeout
+import spray.http.MultipartFormData
 import spray.http.StatusCodes.Unauthorized
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
@@ -114,6 +116,20 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         get { ctx =>
           println("ALBUM NAME FROM SERVER: " + albumName)
           objectActor ! AddAlbum(ctx, new Identifier(userID), new Identifier(albumID), albumName)
+        }
+      } ~
+      path("image") {
+        post {
+          entity(as[MultipartFormData]) {
+            formData => {
+              //println("FORM DATA")
+              val ftmp = File.createTempFile("upload", ".tmp", new File("tmp"))
+              val output = new FileOutputStream(ftmp)
+              formData.fields.foreach(f => output.write(f.entity.data.toByteArray ) )
+              output.close()
+              complete("done, file in: " + ftmp.getName())
+            }
+          }
         }
       } ~
       /*path("status") {
