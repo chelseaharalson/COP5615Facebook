@@ -15,13 +15,17 @@ import scala.util.Random
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
   var userID = new Identifier(0)
+  var firstName = ""
+  var lastName = ""
   var counter = 0
   var friendList = ArrayBuffer[Identifier]()
   var randomTime = Random.nextInt(50000)
   var albumCount = 0
+  var pictureCount = 0
 
-  schedulePosting(randomTime+10000)
-  scheduleAlbumPosting(randomTime+10000)
+  schedulePosting(randomTime+20000)
+  scheduleAlbumPosting(randomTime+30000)
+  schedulePicturePosting(randomTime+30000)
 
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
@@ -50,7 +54,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
     case DoPost(content) => {
       val timePosted = System.currentTimeMillis()
-      var r = Random.nextInt(friendList.size-1)
+      val r = Random.nextInt(friendList.size-1)
       var post : String = content
       post = "User " + userID + " posted to " + friendList(r) + " : " + content
       post = post.replaceAll(" ","%20")
@@ -59,7 +63,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       val s2 = friendList(r).toString
       s.send("/user/add_post/"+s1+"/"+s2+"/"+post)
       //println(post)
-      var rt = Random.nextInt(60000)
+      val rt = Random.nextInt(60000)
       schedulePosting(rt)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
@@ -71,11 +75,20 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       val s = new SendMessages()
       val s1 = userID.toString
       val s2 = albumCount.toString
-      var rt = Random.nextInt(60000)
+      val rt = Random.nextInt(100000)
       s.send("/user/add_album/"+s1+"/"+s2+"/"+aName)
-      scheduleAlbumPosting(rt)
+      scheduleAlbumPosting(rt+30000)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
+    }
+
+    case DoPicture() => {
+      val s = new SendMessages()
+      val rt = Random.nextInt(100000)
+      s.uploadFile()
+      schedulePicturePosting(rt+60000)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPicture())
     }
 
   }
@@ -106,6 +119,8 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       case Success(r) => {
         userID = r.id
         //println(userID)
+        firstName = r.first_name
+        lastName = r.last_name
         context.self ! AddID(userID)
       }
       case Failure(e) => e
@@ -165,6 +180,15 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
       self ! DoAlbum(albumName)
+    }
+  }
+
+  def schedulePicturePosting(mili : Long) {
+    pictureCount = pictureCount + 1
+
+    import system.dispatcher
+    system.scheduler.scheduleOnce(mili milliseconds) {
+      self ! DoPicture()
     }
   }
 

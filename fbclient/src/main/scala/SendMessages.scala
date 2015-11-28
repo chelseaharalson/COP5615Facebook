@@ -1,3 +1,5 @@
+import java.io.File
+import spray.http.{MediaTypes, BodyPart, MultipartFormData}
 import akka.actor.ActorSystem
 import akka.io.IO
 import spray.client.pipelining._
@@ -30,6 +32,21 @@ class SendMessages() {
     response onComplete {
       case Success(r) => println(r.entity.asString)
       case Failure(e) => e
+    }
+  }
+
+  def uploadFile() = {
+    implicit val system = ActorSystem("simple-spray-client")
+    import system.dispatcher // execution context for futures below
+
+    val pipeline = sendReceive
+    val payload = MultipartFormData(Seq(BodyPart(new File("Pictures/icon.png"), "datafile", MediaTypes.`application/base64`)))
+    val request =
+      Post("http://localhost:8080/user/image", payload)
+
+    pipeline(request).onComplete { res =>
+      println(res)
+      system.shutdown()
     }
   }
 

@@ -75,7 +75,7 @@ class Master(implicit system: ActorSystem) extends Actor {
         }
       }
 
-      Thread.sleep(5000)
+      Thread.sleep(10000)
       context.self ! AddFriends(counter)
     }
 
@@ -115,11 +115,6 @@ class Master(implicit system: ActorSystem) extends Actor {
       userIDlist.+=(userID)
       //println(userIDlist)
     }
-
-    /*case CreatePages => {
-      val pg = new Page()
-      pg.createPage()
-    }*/
   }
 
   def parseFile(fileName: String): ArrayBuffer[String] = {

@@ -122,7 +122,6 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         post {
           entity(as[MultipartFormData]) {
             formData => {
-              //println("FORM DATA")
               val ftmp = File.createTempFile("upload", ".tmp", new File("tmp"))
               val output = new FileOutputStream(ftmp)
               formData.fields.foreach(f => output.write(f.entity.data.toByteArray ) )
@@ -131,6 +130,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
             }
           }
         }
+
       } ~
       /*path("status") {
         entity(as[UserSetStatusForm]) { form => ctx =>
