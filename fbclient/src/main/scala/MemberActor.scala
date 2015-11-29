@@ -32,7 +32,7 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
       createMember(pFirstName, pLastName, pGender)
-      context.parent ! "Done creating users"
+      //context.parent ! "Done creating users"
       // send a message that users are done creating
       //context.parent ! CreateUsers()
       // move scheduling after user creation is done
