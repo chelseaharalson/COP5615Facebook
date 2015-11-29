@@ -35,8 +35,23 @@ class SendMessages() {
     }
   }
 
+  /*def getResp[T : ClassManifest](uri : String) : Future[T] = {
+    implicit val system = ActorSystem()
+    import system.dispatcher // execution context for futures
+
+    val pipeline: HttpRequest => Future[T] = (
+        sendReceive
+        ~> unmarshal[T]
+      )
+
+    val response: Future[T] =
+      pipeline(Post("http://localhost:8080" + uri))
+
+    response
+  }*/
+
   def uploadFile() = {
-    implicit val system = ActorSystem("simple-spray-client")
+    implicit val system = ActorSystem()
     import system.dispatcher // execution context for futures below
 
     val pipeline = sendReceive

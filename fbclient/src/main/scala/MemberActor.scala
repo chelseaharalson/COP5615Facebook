@@ -14,6 +14,7 @@ import scala.util.Random
 
 class MemberActor(implicit system: ActorSystem) extends Actor {
   var scheduler: Cancellable = _
+  var loadConfig = 2
   var userID = new Identifier(0)
   var firstName = ""
   var lastName = ""
@@ -22,14 +23,19 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
   var randomTime = Random.nextInt(50000)
   var albumCount = 0
   var pictureCount = 0
+  val s = new SendMessages()
 
-  schedulePosting(randomTime+20000)
-  scheduleAlbumPosting(randomTime+30000)
-  schedulePicturePosting(randomTime+30000)
+  schedulePosting((randomTime+20000) * loadConfig)
+  scheduleAlbumPosting((randomTime+30000) * loadConfig)
+  schedulePicturePosting((randomTime+30000) * loadConfig)
 
   def receive = {
     case CreateUser(pFirstName, pLastName, pGender) => {
       createMember(pFirstName, pLastName, pGender)
+      //context.parent ! "Done creating users"
+      // send a message that users are done creating
+      //context.parent ! CreateUsers()
+      // move scheduling after user creation is done
     }
 
     case AddID(pUserID) => {
@@ -43,11 +49,11 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       friendList = userList
       println("FRIEND LIST : " + friendList)
 
-      val s = new SendMessages()
-
+      //val s = new SendMessages()
       for (i <- 0 until friendList.size) {
         val s1 = userID.toString
         val s2 = friendList(i).toString
+        //println("s1: " + s1 + "  s2: " + s2)
         s.send("/user/add_friendx/"+s1+"/"+s2)
       }
     }
@@ -58,13 +64,13 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
       var post : String = content
       post = "User " + userID + " posted to " + friendList(r) + " : " + content
       post = post.replaceAll(" ","%20")
-      val s = new SendMessages()
+      //val s = new SendMessages()
       val s1 = userID.toString
       val s2 = friendList(r).toString
       s.send("/user/add_post/"+s1+"/"+s2+"/"+post)
       //println(post)
       val rt = Random.nextInt(60000)
-      schedulePosting(rt)
+      schedulePosting(rt * loadConfig)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
     }
@@ -72,21 +78,21 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
     case DoAlbum(albumName) => {
       var aName : String = albumName
       aName = aName.replaceAll(" ","%20")
-      val s = new SendMessages()
+      //val s = new SendMessages()
       val s1 = userID.toString
       val s2 = albumCount.toString
       val rt = Random.nextInt(100000)
       s.send("/user/add_album/"+s1+"/"+s2+"/"+aName)
-      scheduleAlbumPosting(rt+30000)
+      scheduleAlbumPosting((rt+30000) * loadConfig)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
     }
 
     case DoPicture() => {
-      val s = new SendMessages()
+      //val s = new SendMessages()
       val rt = Random.nextInt(100000)
       s.uploadFile()
-      schedulePicturePosting(rt+60000)
+      schedulePicturePosting((rt+60000) * loadConfig)
       import scala.concurrent.ExecutionContext.Implicits.global
       scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPicture())
     }
@@ -155,14 +161,10 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
   }
 
   def schedulePosting(mili : Long) {
-    //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
     val user = new User()
     val fileStatus = "TextFiles/Status.txt"
     val posts = user.parseFile(fileStatus)
     val userPost = user.generateStatus(posts)
-
-    //var r = Random.nextInt(friendList.size-1)
-
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
       self ! DoPost(userPost)
@@ -170,13 +172,11 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
   }
 
   def scheduleAlbumPosting(mili : Long) {
-    //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(mili, MILLISECONDS), self, doPost(1, 2, "test post"))
     val user = new User()
     val fileStatus = "TextFiles/Status.txt"
     val posts = user.parseFile(fileStatus)
     val albumName = user.generateStatus(posts)
     albumCount = albumCount + 1
-
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
       self ! DoAlbum(albumName)
@@ -185,7 +185,6 @@ class MemberActor(implicit system: ActorSystem) extends Actor {
 
   def schedulePicturePosting(mili : Long) {
     pictureCount = pictureCount + 1
-
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
       self ! DoPicture()
