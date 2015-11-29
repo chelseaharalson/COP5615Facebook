@@ -110,6 +110,32 @@ class Master(implicit system: ActorSystem) extends Actor {
       }
     }
 
+    case AddFriends(numOfUsers) => {
+      var amtOfFriends = 0
+
+      var c = 0
+      var friendList = ArrayBuffer[Identifier]()
+
+      for (i <- 1 to numOfUsers) {
+        friendList.clear()
+        c = 0
+        amtOfFriends = Math.abs(realRandom(numOfFriends)) + 2
+        do {
+          var randFriend = 0
+          randFriend = realRandom(amtOfFriends)
+          if (userIDlist(randFriend) != null && amtOfFriends > 0 && !friendList.contains(userIDlist(randFriend))) {
+            //println("Random Friend: " + randFriend + "  Amount of Friends: " + amtOfFriends)
+            friendList.+=(userIDlist(randFriend))
+            c = c + 1
+          }
+        } while(c < amtOfFriends);
+
+        //println(friendList)
+        //Thread.sleep(500)
+        context.actorSelection("../" + i.toString()) ! AddFriendList(friendList)
+      }
+    }
+
     case AddID(userID) => {
       //println("ADDING ID...")
       userIDlist.+=(userID)
@@ -126,9 +152,9 @@ class Master(implicit system: ActorSystem) extends Actor {
   }
 
   def realRandom(r : Int) : Int = {
-    var i = Random.nextInt(1000)
-    var f = i.toFloat / 1000
-    var f1 = f * r
+    val i = Random.nextInt(1000)
+    val f = i.toFloat / 1000
+    val f1 = f * r
     f1.toInt
   }
 
