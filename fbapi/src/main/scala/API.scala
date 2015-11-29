@@ -16,6 +16,7 @@ import session.directives._
 
 import FacebookJsonSupport._
 
+
 import scala.collection.mutable
 
 case class Session(id : String, values : Map[String, Int]) {
@@ -31,6 +32,7 @@ case class Session(id : String, values : Map[String, Int]) {
 
   def setUserId(id : Identifier) = {
     values.updated("user_id", id.asInt)
+    values
   }
 }
 
@@ -59,7 +61,7 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   def receive = runRoute(sessionRoute)
 
   // Path directive that extracts a Facebook ID
-  def ObjectID = path(FBID)
+  def ObjectID = pathPrefix(FBID)
 
   val invalidSessionHandler = RejectionHandler {
     case InvalidSessionRejection(id) :: _ =>
@@ -88,95 +90,38 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
           }
         }
       } ~
-      path("friends") {
-        get {
-          complete {
-            "Getting user friends"
+      ObjectID { userId =>
+        path("friends") {
+          get { ctx =>
+            objectActor ! GetFriendsList(ctx, new Identifier(userId))
           }
-        }
-      } ~
-      path("add_friend" / FBID) { id =>
-        post { ctx =>
-          objectActor ! AddFriend(ctx, session.getCurrentUser(), new Identifier(id))
-        }
-      } ~
-      path("add_friendx" / Segment / Segment) { (myID,friendID) =>
-        get { ctx =>
-          println("TEST!!!! SERVER")
-          objectActor ! AddFriendX(ctx, new Identifier(myID), new Identifier(friendID))
-        }
-      } ~
-      path("add_post" / Segment / Segment / Segment) { (myID,friendID,content) =>
-        get { ctx =>
-          println(content)
-          objectActor ! AddPost(ctx, new Identifier(myID), new Identifier(friendID), content)
-        }
-      } ~
-      path("add_album" / Segment / Segment / Segment) { (userID,albumID,albumName) =>
-        get { ctx =>
-          println("ALBUM NAME FROM SERVER: " + albumName)
-          objectActor ! AddAlbum(ctx, new Identifier(userID), new Identifier(albumID), albumName)
-        }
-      } ~
-      path("image") {
-        post {
-          entity(as[MultipartFormData]) {
-            formData => {
-              val ftmp = File.createTempFile("upload", ".tmp", new File("tmp"))
-              val output = new FileOutputStream(ftmp)
-              formData.fields.foreach(f => output.write(f.entity.data.toByteArray ) )
-              output.close()
-              complete("done, file in: " + ftmp.getName())
+        } ~
+        path("add_friend" / FBID) { friendId =>
+          post { ctx =>
+            objectActor ! AddFriend(ctx, new Identifier(userId), new Identifier(friendId))
+          }
+        } ~
+        path("post" / FBID) { friendId =>
+          post {
+            entity(as[PostCreateForm]) { form => ctx =>
+              objectActor ! CreatePost(ctx, new Identifier(userId), new Identifier(friendId), form)
             }
           }
-        }
-
-      } ~
-      /*path("status") {
-        entity(as[UserSetStatusForm]) { form => ctx =>
-          post {
-            objectActor ! SetStatus(ctx, session.getCurrentUser(), form)
-          }
-        }
-      } ~ */
-      ObjectID { id =>
+        } ~
         get { ctx =>
-          objectActor ! RetrieveUser(ctx, new Identifier(id))
+          objectActor ! GetUser(ctx, new Identifier(userId))
         }
       } ~
       pathEndOrSingleSlash {
         post {
           // Receive a JSON entity that acts as a form
           entity(as[UserCreateForm]) { user => ctx =>
-            objectActor ! CreateUser(ctx, user, session)
+            objectActor ! CreateUser(ctx, user)
           }
         } ~
         get {
+          // TODO: need a session object for this to work
           complete("Yourself")
-        }
-      }
-    } ~
-    pathPrefix("comment") {
-      ObjectID { id =>
-        get {
-          complete {
-            s"Comment $id"
-          }
-        } ~
-          put {
-            complete {
-              "Editing comment"
-            }
-          } ~
-          delete {
-            complete {
-              "Removing comment"
-            }
-          }
-      } ~
-      post {
-        complete {
-          "Creating comment"
         }
       }
     } ~
@@ -192,6 +137,8 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
       get {
         complete {
           // TODO: redirect to user's profile (/user)
+          // This requires a working session object
+
           // In our Facebook model, you must be logged in as a user account, so this always
           // returns a user
           "Get the logged in user's profile"
@@ -199,70 +146,39 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
       }
     } ~
     pathPrefix("page") {
-      ObjectID { id =>
+      ObjectID { pageId =>
         get { ctx =>
-          objectActor ! RetrievePage(ctx, new Identifier(id))
+          objectActor ! GetPage(ctx, new Identifier(pageId))
         }
       } ~
       post {
-        //complete {
         // Receive a JSON entity that acts as a form
-        entity(as[PageCreateForm]) { page => ctx =>
-          objectActor ! CreatePage(ctx, page, session)
-        }
-        //}
-      }
-    } ~
-    pathPrefix("like") {
-      ObjectID { id =>
-        get {
-          complete {
-            s"Getting likes for $id"
-          }
-        } ~
-        post {
-          complete {
-            s"Liking object $id"
-          }
-        } ~
-        delete {
-          complete {
-            s"Removing like from object $id"
-          }
+        entity(as[PageCreateForm]) { form => ctx =>
+          objectActor ! CreatePage(ctx, form)
         }
       }
     } ~
-    pathPrefix("message") {
-      path(MessageThreadID) { id =>
-        get {
-          complete {
-            s"Getting messages for thread $id"
+    pathPrefix("album") {
+      ObjectID { albumId =>
+        post {
+          entity(as[AlbumCreateForm]) { form => ctx =>
+            objectActor ! CreateAlbum(ctx, new Identifier(albumId), form)
           }
         } ~
-          post {
-            complete {
-              s"New message for thread $id"
-            }
-          }
-      } ~
-      path("threads") {
-        get {
-          complete {
-            "Getting list of threads"
-          }
+        get { ctx =>
+          objectActor ! GetAlbum(ctx, new Identifier(albumId))
         }
-      } ~
-      // Who to send the message to
-      ObjectID { id =>
-        get {
-          complete {
-            s"Getting messages for thread $id"
-          }
-        }
-        post {
-          complete {
-            // This may reuse an existing message thread or start a new one
-            "New message to person"
+      }
+    } ~
+    path("image") {
+      post {
+        entity(as[MultipartFormData]) {
+          formData => {
+            val ftmp = File.createTempFile("upload", ".tmp", new File("tmp"))
+            val output = new FileOutputStream(ftmp)
+            formData.fields.foreach(f => output.write(f.entity.data.toByteArray ) )
+            output.close()
+            complete("done, file in: " + ftmp.getName())
           }
         }
       }
