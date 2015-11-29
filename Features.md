@@ -81,6 +81,8 @@ Facebook is a complex and diverse platform. There are hundreds of object and edg
 	- Data
 		- Base64 raw picture data over JSON
 		- Could be a small icon or gravatar-like picture
+
+# Optional Objects
 * Comment
 	- ID
 	- From commenter
@@ -92,8 +94,6 @@ Facebook is a complex and diverse platform. There are hundreds of object and edg
 * Comment List (comment thread)
 	- Associated Object ID
 	- Array of comments
-
-# Optional Objects
 * Newsfeed
 	- Objects
 * Likes
