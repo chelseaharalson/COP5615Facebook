@@ -15,6 +15,10 @@ case class AddFriend(myID : Identifier, friendID : Identifier)
 
 object Network {
   implicit val system = ActorSystem("network-system")
+  var Hostname = "localhost"
+  var HostPort = 8080
+  var HostSchema = "http://"
+  def HostURI = HostSchema + Hostname + ":" + HostPort
 
   def send(uri : String) = {
     implicit val timeout = Timeout(10.seconds)
@@ -24,7 +28,7 @@ object Network {
     val pipeline: Future[SendReceive] =
       for (
         Http.HostConnectorInfo(connector, _) <-
-        IO(Http) ? Http.HostConnectorSetup("localhost", port = 8080)
+        IO(Http) ? Http.HostConnectorSetup(Network.Hostname, port = Network.HostPort)
       ) yield sendReceive(connector)
 
     val request = Get(uri)
@@ -43,7 +47,7 @@ object Network {
     val pipeline: Future[SendReceive] =
       for (
         Http.HostConnectorInfo(connector, _) <-
-        IO(Http) ? Http.HostConnectorSetup("localhost", port = 8080)
+        IO(Http) ? Http.HostConnectorSetup(Network.Hostname, port = Network.HostPort)
       ) yield sendReceive(connector)
 
     val request = Post(uri)
@@ -134,7 +138,7 @@ object Network {
     val pipeline = sendReceive
     val payload = MultipartFormData(Seq(BodyPart(new File("Pictures/icon.png"), "datafile", MediaTypes.`application/base64`)))
     val request =
-      Post("http://localhost:8080/image", payload)
+      Post(Network.HostURI + "/image", payload)
 
     pipeline(request).onComplete { res =>
       println(res)

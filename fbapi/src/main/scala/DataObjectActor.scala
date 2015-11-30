@@ -1,3 +1,5 @@
+import java.io._
+
 import akka.actor.{Cancellable, ActorLogging, Actor}
 import spray.routing.RequestContext
 import spray.http.StatusCodes._
@@ -30,16 +32,18 @@ case class GetPostsByUser(ctx : RequestContext, uid : Identifier)
 case class GetUserList(ctx : RequestContext, uid : Identifier)
 case class GetPageList(ctx : RequestContext, uid : Identifier)
 
-// Stats
+// API Meta
 case class PrintStats()
-
+case class StopServer()
 
 class DataObjectActor extends Actor with ActorLogging {
   // Response wrapper
   type FacebookResponse = (StatusCode, Object)
 
   // Count requests per second
-  var counter = 0
+  var counter : Long = 0
+  var totalCounter : Long = 0
+  var measurements = mutable.MutableList[Tuple2[Long, Double]]()
 
   // Global ID counter
   var nextId = 0
@@ -58,25 +62,40 @@ class DataObjectActor extends Actor with ActorLogging {
   // [ Auxiliary object storage ]
   var friendsList = mutable.HashMap[Identifier, FriendsList]()
 
+  // Stats collection
+  var initialStartTime: Long = 0
   var startTime: Long = 0
   var endTime: Long = _
   var scheduler: Cancellable = _
-  var duration = new FiniteDuration(60000, MILLISECONDS)
+  var frequency = new FiniteDuration(1000, MILLISECONDS)
+  var stopIn = new FiniteDuration(60000, MILLISECONDS)
+  var firstCount = true // when to start collecting stats
 
-  //startTime = System.currentTimeMillis
-  runStats()
   def runStats() {
     import scala.concurrent.ExecutionContext.Implicits.global
-    scheduler = context.system.scheduler.scheduleOnce(
-      duration,
+
+    // start counting immediately
+    startTime = System.currentTimeMillis
+    initialStartTime = startTime
+
+    // periodic stats collection
+    scheduler = context.system.scheduler.schedule(frequency,
+      frequency,
       self,
       PrintStats())
+
+    // stop server signal
+    scheduler = context.system.scheduler.scheduleOnce(
+      stopIn,
+      self,
+      StopServer())
   }
 
   /////////////////////////////////////////////////////////////////////////
 
   /**
     * Helper method that converts a FacebookResponse to a marshallable object
+    * This is a hack because I don't know of a better way to do this.
     * @param ctx Request context
     * @param resp Facebook response content
     */
@@ -103,59 +122,78 @@ class DataObjectActor extends Actor with ActorLogging {
   def receive = {
     // ################# Stats
     case PrintStats() =>
-      if((System.currentTimeMillis - startTime).millis.toMinutes >= (1 minute).toMinutes) {
-        println()
-        println()
-        val reqPerSec = (counter.toFloat/(System.currentTimeMillis - startTime).toFloat) * 1000
-        log.info("The average number of requests per second is : " + reqPerSec)
-        println("Shutting down the system.")
-        context.system.shutdown()
-      }
-      runStats()
+      println()
+      println()
+      val now = System.currentTimeMillis
+      val reqPerSec = (counter.toDouble/(now - startTime).toDouble) * 1000
+      log.info("**** The average number of requests per second is : %.2f".format(reqPerSec))
+
+      measurements += new Pair(now-initialStartTime, reqPerSec)
+
+      // reset the stats
+      counter = 0
+      startTime = System.currentTimeMillis()
+    case StopServer() =>
+      log.info("Stopping API server")
+
+      printStats
+      writeStatsLog
+
+      context.system.shutdown()
 
     // ################# Creation
     case CreateUser(ctx, form) =>
+      countReq
       log.info("Creating user " + form.first_name + " " + form.last_name)
       finalize(ctx, createUser(form))
     case CreatePage(ctx, form) =>
+      countReq
       log.info("Creating page " + form.description)
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
+      countReq
       log.info("Creating post " + form.content + " FROM USER " + owner + " TO " + target)
       finalize(ctx, createPost(owner,target,form))
     case CreateAlbum(ctx, owner, form) =>
+      countReq
       log.info("Creating album " + form.name)
       finalize(ctx, createAlbum(owner, form))
     case CreatePicture(ctx, albumId, form) =>
+      countReq
       log.info("Creating picture " + form.caption)
       finalize(ctx, createPicture(albumId, form))
 
     // ################# Retrieval
     case GetUser(ctx, id) =>
+      countReq
       if (userExists(id)) {
         ctx.complete(userById(id))
       } else {
         ctx.complete("Unknown User ID")
       }
     case GetPage(ctx, id) =>
+      countReq
       if (pageMap.contains(id)) {
         ctx.complete(pageMap{id})
       } else {
         ctx.complete("Unknown Page ID")
       }
     case GetPost(ctx, id) =>
+      countReq
       if (postMap.contains(id)) {
         ctx.complete(postMap{id})
       } else {
         ctx.complete("Unknown Post ID")
       }
     case GetAlbum(ctx, id) =>
+      countReq
       if (albumMap.contains(id)) {
         ctx.complete(albumMap{id})
       } else {
         ctx.complete("Unknown Album ID")
       }
     case GetPicture(ctx, id) =>
+      countReq
       if (pictureMap.contains(id)) {
         ctx.complete(pictureMap{id})
       } else {
@@ -164,11 +202,13 @@ class DataObjectActor extends Actor with ActorLogging {
 
     // ################# Actions
     case AddFriend(ctx, requester, target) =>
+      countReq
       //log.info(s"Adding friend $requester <-> $target")
       finalize(ctx, addFriend(requester, target))
 
     // ################# Queries
     case GetFriendsList(ctx, uid) =>
+      countReq
       if(!userExists(uid)) {
         ctx.complete((NotFound, "Could not find the user"))
       } else {
@@ -238,11 +278,6 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createPost(ownerId : Identifier, targetId : Identifier, form : PostCreateForm) : FacebookResponse = {
-    if (startTime == 0) {
-      startTime = System.currentTimeMillis
-    }
-    counter = counter + 1
-
     val id = new Identifier(getNextId)
 
     val ent = new PostEnt(id,
@@ -262,11 +297,6 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createAlbum(ownerId : Identifier, form : AlbumCreateForm) : FacebookResponse = {
-    if (startTime == 0) {
-      startTime = System.currentTimeMillis
-    }
-    counter = counter + 1
-
     val id = new Identifier(getNextId)
 
     val ent = new AlbumEnt(id,
@@ -286,11 +316,6 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createPicture(pAlbumId : Identifier, form : PictureCreateForm) : FacebookResponse = {
-    if (startTime == 0) {
-      startTime = System.currentTimeMillis
-    }
-    counter = counter + 1
-
     val id = new Identifier(getNextId)
 
     val ent = new PictureEnt(id,
@@ -377,5 +402,68 @@ class DataObjectActor extends Actor with ActorLogging {
     val id = nextId
     nextId += 1
     id
+  }
+
+  /**
+    * Counts a request for Stats collection
+    */
+  def countReq = {
+    if(firstCount) {
+      firstCount = false
+      runStats()
+    }
+
+    counter += 1
+    totalCounter += 1
+  }
+
+  def getStatsInfo : (Double, Double, Long, String) = {
+    var avg : Double = 0.0
+    var max : Double = 0.0
+
+    val builder = mutable.StringBuilder.newBuilder
+    for(i <- measurements.indices) {
+      val m : Double = measurements(i)._2
+      builder.append("%.2f".format(m))
+
+      if(i+1 != measurements.size)
+        builder.append(", ")
+
+      if(m > max)
+        max = m
+
+      avg += m
+    }
+
+    avg /= measurements.size
+
+    (avg, max, totalCounter, builder.result())
+  }
+
+  def printStats = {
+    val (avg, max, totalCounter, all) = getStatsInfo
+
+    log.info("Final stats measurements: " + all)
+    log.info("Peak R/S: %.2f".format(max))
+    log.info("Average R/S: %.2f".format(avg))
+    log.info("Total requests: " + totalCounter)
+  }
+
+  def writeStatsLog = {
+    val logFile = new PrintWriter(new File("fbapi-stats-%d.csv".format(initialStartTime)))
+
+    logFile.println("# Start time %d".format(initialStartTime))
+
+    for(i <- measurements.indices) {
+      logFile.println("%d,%.2f".format(measurements(i)._1, measurements(i)._2))
+
+    }
+
+    val (avg, max, totalCounter, _) = getStatsInfo
+    logFile.println("# End time %d".format(System.currentTimeMillis))
+    logFile.println("# Peak R/S: %.2f".format(max))
+    logFile.println("# Average R/S: %.2f".format(avg))
+    logFile.println("# Total requests: " + totalCounter)
+    logFile.close()
   }
 }

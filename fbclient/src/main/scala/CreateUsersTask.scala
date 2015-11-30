@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext
 
 import ExecutionContext.Implicits.global
 
-class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double)(implicit system : ActorSystem)
+class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Double)(implicit system : ActorSystem)
   extends Actor with ActorLogging {
   case class UserCreated(user : UserEnt)
 
@@ -82,7 +82,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double)(implicit system
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -98,7 +98,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double)(implicit system
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -118,7 +118,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double)(implicit system
       )
 
     val response: Future[UserEnt] =
-      pipeline(Post("http://localhost:8080/user", form))
+      pipeline(Post(Network.HostURI + "/user", form))
 
     response
   }

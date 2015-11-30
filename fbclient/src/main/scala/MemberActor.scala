@@ -4,9 +4,8 @@ import scala.concurrent.duration._
 import scala.util.Random
 //import scala.concurrent.ExecutionContext.Implicits.global
 
-class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor with ActorLogging {
+class MemberActor(ent : UserEnt, loadConfig : Double)(implicit system: ActorSystem) extends Actor with ActorLogging {
   var scheduler: Cancellable = _
-  var loadConfig = 1
 
   var counter = 0
   var friendList = new FriendsList(mutable.MutableList[Identifier]())
@@ -43,7 +42,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       post = content
       val s1 = ent.id.toString
       val s2 = friendList.friends(r).toString
-      val uri = "http://localhost:8080/user/"+s1+"/post/"+s2
+      val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
       Network.addPost(uri,post)
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
@@ -55,7 +54,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       val s1 = ent.id.toString
       //val s2 = albumCount.toString
       val rt = Random.nextInt(100000)
-      val uri = "http://localhost:8080/album/"+s1
+      val uri = Network.HostURI + "/album/"+s1
       Network.addAlbum(uri,albumName,albumDescription)
       scheduleAlbumPosting((rt+30000) * loadConfig)
       //import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,7 +65,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       val rt = Random.nextInt(100000)
       val albumId = new Identifier(albumCount)
       //Network.uploadFile()
-      val uri = "http://localhost:8080/picture/"+albumId.toString
+      val uri = Network.HostURI + "/picture/"+albumId.toString
       Network.addPicture(uri,caption,fileId)
       schedulePicturePosting((rt+60000) * loadConfig)
       //import scala.concurrent.ExecutionContext.Implicits.global
@@ -84,6 +83,8 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
     }
   }
 
+  def schedulePosting(mili : Double) : Unit = schedulePosting(mili.toLong)
+
   def scheduleAlbumPosting(mili : Long) {
     val albumName = User.generateStatus
     val albumDescription = User.generateDesc
@@ -95,6 +96,8 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
     }
   }
 
+  def scheduleAlbumPosting(mili : Double) : Unit = scheduleAlbumPosting(mili.toLong)
+
   def schedulePicturePosting(mili : Long) {
     val caption = User.generateStatus
     pictureCount = pictureCount + 1
@@ -105,5 +108,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       self ! DoPicture(caption,fileId)
     }
   }
+
+  def schedulePicturePosting(mili : Double) : Unit = schedulePicturePosting(mili.toLong)
 
 }
