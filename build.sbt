@@ -1,3 +1,9 @@
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "project1.jar"
+
 val sprayV = "1.3.3"
 
 lazy val commonSettings = Seq(
