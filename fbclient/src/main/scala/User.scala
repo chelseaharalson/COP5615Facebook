@@ -3,7 +3,9 @@ import com.github.nscala_time.time.Imports._
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
 
-class User() {
+object User {
+  val fileStatus = "TextFiles/Status.txt"
+  val posts = FBUtil.parseFile(fileStatus)
 
   def generateBirthday: DateTime = {
     /*0% 		13 - 17
@@ -107,19 +109,10 @@ class User() {
     about
   }
 
-  def generateStatus(statusArr: ArrayBuffer[String]) : String = {
+  def generateStatus : String = {
     var status: String = ""
-    val i: Integer = Random.nextInt(statusArr.size)
-    status = statusArr(i)
+    val i: Integer = Random.nextInt(posts.size)
+    status = posts(i)
     status
   }
-
-  def parseFile(fileName: String): ArrayBuffer[String] = {
-    var pfile = ArrayBuffer[String]()
-    for (line <- Source.fromFile(fileName).getLines()) {
-      pfile += line
-    }
-    pfile
-  }
-
 }

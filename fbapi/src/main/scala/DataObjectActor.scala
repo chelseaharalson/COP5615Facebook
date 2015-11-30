@@ -124,7 +124,7 @@ class DataObjectActor extends Actor with ActorLogging {
 
     // ################# Actions
     case AddFriend(ctx, requester, target) =>
-      log.info(s"Adding friend $requester <-> $target")
+      //log.info(s"Adding friend $requester <-> $target")
       finalize(ctx, addFriend(requester, target))
 
     // ################# Queries
