@@ -1,3 +1,9 @@
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "project4.jar"
+
 val sprayV = "1.3.3"
 
 lazy val commonSettings = Seq(
@@ -27,13 +33,13 @@ lazy val fbapi = (project in file("fbapi")).
   settings(commonSettings: _*).
   settings(
     name := "fbapi"
-  ).dependsOn(common)
+  ).settings(assemblySettings: _*).dependsOn(common)
 
 lazy val fbclient = (project in file("fbclient")).
   settings(commonSettings: _*).
   settings(
     name := "fbclient"
-  ).dependsOn(common)
+  ).settings(assemblySettings: _*).dependsOn(common)
 
 lazy val common = (project in file("common")).
   settings(commonSettings: _*).
