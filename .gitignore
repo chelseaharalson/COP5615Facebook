@@ -4,4 +4,4 @@ target/
 tmp/
 out/
 *.swp
-*.csv
+/*.csv
