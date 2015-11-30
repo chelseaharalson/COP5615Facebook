@@ -84,19 +84,19 @@ class DataObjectActor extends Actor with ActorLogging {
   def receive = {
     // ################# Creation
     case CreateUser(ctx, form) =>
-      log.info("Creating user " + form.first_name)
+      log.info("Creating user " + form.first_name + " " + form.last_name)
       finalize(ctx, createUser(form))
     case CreatePage(ctx, form) =>
-      log.info("Creating page " + form.toString)
+      log.info("Creating page " + form.description)
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
-      log.info("Creating post " + form.content)
+      log.info("Creating post " + form.content + " FROM USER " + owner + " TO " + target)
       finalize(ctx, createPost(owner,target,form))
     case CreateAlbum(ctx, owner, form) =>
       log.info("Creating album " + form.name)
       finalize(ctx, createAlbum(owner, form))
     case CreatePicture(ctx, albumId, form) =>
-      log.info("Creating picture " + form.fileId)
+      log.info("Creating picture " + form.caption)
       finalize(ctx, createPicture(albumId, form))
 
     // ################# Retrieval
@@ -140,11 +140,10 @@ class DataObjectActor extends Actor with ActorLogging {
     case GetFriendsList(ctx, uid) =>
       if(!userExists(uid)) {
         ctx.complete((NotFound, "Could not find the user"))
+      } else {
+        finalize(ctx, getFriends(uid))
       }
 
-      log.info("TODO: GetFriendsList")
-
-      ctx.complete("Not complete")
     case _ => log.debug("Unknown message")
   }
 
@@ -289,6 +288,14 @@ class DataObjectActor extends Actor with ActorLogging {
     tgtList += requester
 
     (OK, "You are now friends with " + target)
+  }
+
+  /**
+   * Gets friends for requester
+   */
+  def getFriends(requester : Identifier) : FacebookResponse = {
+    val reqList = friendsList{requester}.friends
+    (OK, "Here is your friend list: " + reqList)
   }
 
   ////////////////////////////////////////////////////////

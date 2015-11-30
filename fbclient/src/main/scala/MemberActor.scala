@@ -1,5 +1,4 @@
 import akka.actor.{ActorLogging, Actor, ActorSystem, Cancellable}
-
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.Random
@@ -7,7 +6,7 @@ import scala.util.Random
 
 class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor with ActorLogging {
   var scheduler: Cancellable = _
-  var loadConfig = 2
+  var loadConfig = 1
 
   var counter = 0
   var friendList = new FriendsList(mutable.MutableList[Identifier]())
@@ -15,9 +14,9 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
   var albumCount = 0
   var pictureCount = 0
 
-  //schedulePosting((randomTime+20000) * loadConfig)
-  //scheduleAlbumPosting((randomTime+30000) * loadConfig)
-  //schedulePicturePosting((randomTime+30000) * loadConfig)
+  schedulePosting((randomTime+20000) * loadConfig)
+  scheduleAlbumPosting((randomTime+30000) * loadConfig)
+  schedulePicturePosting((randomTime+30000) * loadConfig)
 
   override def preStart = {
     //log.info("Starting as " + context.self.path)
@@ -27,13 +26,11 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
     case AddFriendList(userList) => {
       //println("FRIEND LIST : " + userList)
       friendList = new FriendsList(mutable.MutableList[Identifier](userList.toSeq : _*))
-      //println("FRIEND LIST : " + friendList)
+      println("Friend list for " + ent.first_name + " " + ent.last_name + " (by Id): " + friendList)
 
-      //val s = new SendMessages()
       for (i <- 0 until friendList.friends.size) {
         val s1 = ent.id.toString
         val s2 = friendList.friends(i).toString
-        //println("s1: " + s1 + "  s2: " + s2)
         Network.post("/user/" +s1+ "/add_friend/"+s2)
       }
     }
@@ -41,40 +38,39 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
     case DoPost(content) => {
       val timePosted = System.currentTimeMillis()
       val r = Random.nextInt(friendList.friends.size-1)
+
       var post : String = content
-      post = "User " + ent.id + " posted to " + friendList.friends(r) + " : " + content
-      post = post.replaceAll(" ","%20")
-      //val s = new SendMessages()
+      post = content
       val s1 = ent.id.toString
       val s2 = friendList.friends(r).toString
-      Network.post("/user/add_post/"+s1+"/"+s2+"/"+post)
-      //println(post)
+      val uri = "http://localhost:8080/user/"+s1+"/post/"+s2
+      Network.addPost(uri,post)
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
-      import scala.concurrent.ExecutionContext.Implicits.global
-      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
+      //import scala.concurrent.ExecutionContext.Implicits.global
+      //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
     }
 
-    case DoAlbum(albumName) => {
-      var aName : String = albumName
-      aName = aName.replaceAll(" ","%20")
-      //val s = new SendMessages()
+    case DoAlbum(albumName,albumDescription) => {
       val s1 = ent.id.toString
-      val s2 = albumCount.toString
+      //val s2 = albumCount.toString
       val rt = Random.nextInt(100000)
-      Network.send("/user/add_album/"+s1+"/"+s2+"/"+aName)
+      val uri = "http://localhost:8080/album/"+s1
+      Network.addAlbum(uri,albumName,albumDescription)
       scheduleAlbumPosting((rt+30000) * loadConfig)
-      import scala.concurrent.ExecutionContext.Implicits.global
-      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
+      //import scala.concurrent.ExecutionContext.Implicits.global
+      //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoAlbum(aName))
     }
 
-    case DoPicture() => {
-      //val s = new SendMessages()
+    case DoPicture(caption,fileId) => {
       val rt = Random.nextInt(100000)
-      Network.uploadFile()
+      val albumId = new Identifier(albumCount)
+      //Network.uploadFile()
+      val uri = "http://localhost:8080/picture/"+albumId.toString
+      Network.addPicture(uri,caption,fileId)
       schedulePicturePosting((rt+60000) * loadConfig)
-      import scala.concurrent.ExecutionContext.Implicits.global
-      scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPicture())
+      //import scala.concurrent.ExecutionContext.Implicits.global
+      //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPicture())
     }
 
   }
@@ -90,20 +86,23 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
 
   def scheduleAlbumPosting(mili : Long) {
     val albumName = User.generateStatus
+    val albumDescription = User.generateDesc
     albumCount = albumCount + 1
 
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
-      self ! DoAlbum(albumName)
+      self ! DoAlbum(albumName,albumDescription)
     }
   }
 
   def schedulePicturePosting(mili : Long) {
+    val caption = User.generateStatus
     pictureCount = pictureCount + 1
+    val fileId = new Identifier(pictureCount)
 
     import system.dispatcher
     system.scheduler.scheduleOnce(mili milliseconds) {
-      self ! DoPicture()
+      self ! DoPicture(caption,fileId)
     }
   }
 
