@@ -53,7 +53,6 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
   }
 
   var map = mutable.HashMap[Identifier, UserEnt]()
-  var pageMap = mutable.HashMap[Identifier, PageEnt]()
 
   // we don't create a receive function ourselves, but use
   // the runRoute function from the HttpService to create
@@ -145,6 +144,13 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         }
       }
     } ~
+      pathPrefix("post") {
+        ObjectID { postId =>
+          get { ctx =>
+            objectActor ! GetPost(ctx, new Identifier(postId))
+          }
+        }
+      } ~
     pathPrefix("page") {
       ObjectID { pageId =>
         get { ctx =>
@@ -168,6 +174,18 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         get { ctx =>
           objectActor ! GetAlbum(ctx, new Identifier(albumId))
         }
+      }
+    } ~
+    pathPrefix("picture") {
+      ObjectID { pictureId =>
+        post {
+          entity(as[PictureCreateForm]) { form => ctx =>
+            objectActor ! CreatePicture(ctx, new Identifier(pictureId), form)
+          }
+        } ~
+          get { ctx =>
+            objectActor ! GetPicture(ctx, new Identifier(pictureId))
+          }
       }
     } ~
     path("image") {

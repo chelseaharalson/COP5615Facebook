@@ -89,38 +89,47 @@ class DataObjectActor extends Actor with ActorLogging {
     case CreatePage(ctx, form) =>
       log.info("Creating page " + form.toString)
       finalize(ctx, createPage(form))
-    case CreatePost(ctx, myId, target, PostCreateForm(content)) =>
-      log.info("TODO: CreatePost")
-      finalize(ctx, (NotFound, "Not implemented"))
-    case CreateAlbum(ctx, myId, AlbumCreateForm(name, description)) =>
-      log.info("TODO: CreateAlbum...")
-      finalize(ctx, (NotFound, "Not implemented"))
-    case CreatePicture(ctx, albumId, PictureCreateForm(caption, fileId)) =>
-      log.info("TODO: CreatePicture")
-      finalize(ctx, (NotFound, "Not implemented"))
+    case CreatePost(ctx, owner, target, form) =>
+      log.info("Creating post " + form.content)
+      finalize(ctx, createPost(owner,target,form))
+    case CreateAlbum(ctx, owner, form) =>
+      log.info("Creating album " + form.name)
+      finalize(ctx, createAlbum(owner, form))
+    case CreatePicture(ctx, albumId, form) =>
+      log.info("Creating picture " + form.fileId)
+      finalize(ctx, createPicture(albumId, form))
 
     // ################# Retrieval
     case GetUser(ctx, id) =>
       if (userExists(id)) {
         ctx.complete(userById(id))
       } else {
-        ctx.complete("Unknown ID")
+        ctx.complete("Unknown User ID")
       }
     case GetPage(ctx, id) =>
       if (pageMap.contains(id)) {
         ctx.complete(pageMap{id})
       } else {
-        ctx.complete("Unknown ID")
+        ctx.complete("Unknown Page ID")
       }
     case GetPost(ctx, id) =>
-      log.info("TODO: GetPost")
-      ctx.complete((NotFound, "Not implemented"))
+      if (postMap.contains(id)) {
+        ctx.complete(postMap{id})
+      } else {
+        ctx.complete("Unknown Post ID")
+      }
     case GetAlbum(ctx, id) =>
-      log.info("TODO: GetAlbum")
-      ctx.complete((NotFound, "Not implemented"))
+      if (albumMap.contains(id)) {
+        ctx.complete(albumMap{id})
+      } else {
+        ctx.complete("Unknown Album ID")
+      }
     case GetPicture(ctx, id) =>
-      log.info("TODO: GetPicture")
-      ctx.complete((NotFound, "Not implemented"))
+      if (pictureMap.contains(id)) {
+        ctx.complete(pictureMap{id})
+      } else {
+        ctx.complete("Unknown Picture ID")
+      }
 
     // ################# Actions
     case AddFriend(ctx, requester, target) =>
@@ -198,12 +207,18 @@ class DataObjectActor extends Actor with ActorLogging {
     * @param form form with the post creation parameters
     * @return FacebookResponse
     */
-  def createPost(form : PostCreateForm) : FacebookResponse = {
-    val id = getNextId
+  def createPost(ownerId : Identifier, targetId : Identifier, form : PostCreateForm) : FacebookResponse = {
+    val id = new Identifier(getNextId)
 
-    log.info("TODO: createPost")
+    val ent = new PostEnt(id,
+    owner = ownerId,
+    target = targetId,
+    content = form.content
+    )
 
-    (OK, new PostEnt())
+    postMap += (id -> ent)
+
+    (OK, ent)
   }
 
   /**
@@ -211,12 +226,18 @@ class DataObjectActor extends Actor with ActorLogging {
     * @param form form fields for creating a album
     * @return FacebookResponse
     */
-  def createAlbum(form : AlbumCreateForm) : FacebookResponse = {
-    val id = getNextId
+  def createAlbum(ownerId : Identifier, form : AlbumCreateForm) : FacebookResponse = {
+    val id = new Identifier(getNextId)
 
-    log.info("TODO: createAlbum")
+    val ent = new AlbumEnt(id,
+    owner = ownerId,
+    name = form.name,
+    description = form.description
+    )
 
-    (OK, new AlbumEnt())
+    albumMap += (id -> ent)
+
+    (OK, ent)
   }
 
   /**
@@ -224,12 +245,18 @@ class DataObjectActor extends Actor with ActorLogging {
     * @param form form fields for creating a picture
     * @return FacebookResponse
     */
-  def createPicture(form : PictureCreateForm) : FacebookResponse = {
-    val id = getNextId
+  def createPicture(pAlbumId : Identifier, form : PictureCreateForm) : FacebookResponse = {
+    val id = new Identifier(getNextId)
 
-    log.info("TODO: createPicture")
+    val ent = new PictureEnt(id,
+    albumId = pAlbumId,
+    caption = form.caption,
+    fileId = form.fileId
+    )
 
-    (OK, new PictureEnt())
+    pictureMap += (id -> ent)
+
+    (OK, ent)
   }
 
   ////////////////////////////////////////////////////////

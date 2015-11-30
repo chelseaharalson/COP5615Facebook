@@ -5,7 +5,7 @@ import spray.json._
 
 object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object IdentifierJsonFormat extends JsonFormat[Identifier] {
-    def write(id: Identifier) = JsString("0")
+    def write(id: Identifier) = JsString(id.toString)
 
     def read(value: JsValue) = value match {
       case JsString(a) => new Identifier(a.toInt)
@@ -147,8 +147,8 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object PostEntJsonFormat extends RootJsonFormat[PostEnt] {
     def write(ent : PostEnt) = {
       annotate(JsObject(
-        "owner" -> ent.owner.toJson,
-        "target" -> ent.target.toJson,
+        "owner" -> JsString(ent.owner.toString),
+        "target" -> JsString(ent.target.toString),
         "content" -> ent.content.toJson
       ), ent)
     }
@@ -169,7 +169,7 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object AlbumEntJsonFormat extends RootJsonFormat[AlbumEnt] {
     def write(ent : AlbumEnt) = {
       annotate(JsObject(
-        "owner" -> ent.owner.toJson,
+        "owner" -> JsString(ent.owner.toString),
         "name" -> ent.name.toJson,
         "description" -> ent.description.toJson
       ), ent)
@@ -191,9 +191,9 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object PictureEntJsonFormat extends RootJsonFormat[PictureEnt] {
     def write(ent : PictureEnt) = {
       annotate(JsObject(
-        "album_id" -> ent.albumId.toJson,
+        "album_id" -> JsString(ent.albumId.toString),
         "caption" -> ent.caption.toJson,
-        "file_id" -> ent.fileId.toJson
+        "file_id" -> JsString(ent.fileId.toString)
       ), ent)
     }
 
