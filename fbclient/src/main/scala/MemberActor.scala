@@ -43,7 +43,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       post = content
       val s1 = ent.id.toString
       val s2 = friendList.friends(r).toString
-      val uri = "http://localhost:8080/user/"+s1+"/post/"+s2
+      val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
       Network.addPost(uri,post)
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
@@ -55,7 +55,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       val s1 = ent.id.toString
       //val s2 = albumCount.toString
       val rt = Random.nextInt(100000)
-      val uri = "http://localhost:8080/album/"+s1
+      val uri = Network.HostURI + "/album/"+s1
       Network.addAlbum(uri,albumName,albumDescription)
       scheduleAlbumPosting((rt+30000) * loadConfig)
       //import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,7 +66,7 @@ class MemberActor(ent : UserEnt)(implicit system: ActorSystem) extends Actor wit
       val rt = Random.nextInt(100000)
       val albumId = new Identifier(albumCount)
       //Network.uploadFile()
-      val uri = "http://localhost:8080/picture/"+albumId.toString
+      val uri = Network.HostURI + "/picture/"+albumId.toString
       Network.addPicture(uri,caption,fileId)
       schedulePicturePosting((rt+60000) * loadConfig)
       //import scala.concurrent.ExecutionContext.Implicits.global

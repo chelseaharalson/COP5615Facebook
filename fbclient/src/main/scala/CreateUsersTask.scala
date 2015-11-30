@@ -118,7 +118,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double)(implicit system
       )
 
     val response: Future[UserEnt] =
-      pipeline(Post("http://localhost:8080/user", form))
+      pipeline(Post(Network.HostURI + "/user", form))
 
     response
   }

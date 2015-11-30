@@ -13,10 +13,16 @@ object FBAPI {
     implicit val system = ActorSystem("fbapi")
     val service = system.actorOf(Props[API], "api-service")
 
+    var hostname = "localhost"
+
+    if(args.length >= 1) {
+      hostname = args(0)
+    }
+
     // IO requires an implicit ActorSystem, and ? requires an implicit timeout
     // Bind HTTP to the specified service.
     implicit val timeout = Timeout(5.seconds)
-    (IO(Http) ? Http.Bind(service, interface = "localhost", port = 8080)).mapTo[Http.Event].map {
+    (IO(Http) ? Http.Bind(service, interface = hostname, port = 8080)).mapTo[Http.Event].map {
       case Http.Bound(address) =>
         println(s"REST interface bound to $address")
       case Http.CommandFailed(cmd) =>

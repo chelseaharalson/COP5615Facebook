@@ -93,7 +93,7 @@ class CreatePagesTask(numPages : Int)(implicit system: ActorSystem) extends Acto
       )
 
     val response: Future[PageEnt] =
-      pipeline(Post("http://localhost:8080/page", PageCreateForm(name, about, business, contact_address,
+      pipeline(Post(Network.HostURI + "/page", PageCreateForm(name, about, business, contact_address,
         description, location, phone_number)))
 
     response onComplete{
