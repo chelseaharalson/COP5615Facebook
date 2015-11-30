@@ -2,21 +2,44 @@
 \usepackage{graphicx}
 \usepackage[margin=1in]{geometry} 
 \usepackage{float}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{float}
  
 \begin{document}
 
-\title{Project 4}
+\title{Project 4 - Facebook API and Simulator \\ COP5615, Fall 2015}
  
 \author{Grant Hernandez and Chelsea Metcalf}
  
 \maketitle % this produces the title block
  
-\section{CODE STRUCTURE}
+\section*{Code Structure}
 Client/Server
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/client-structure.pdf}
+  \label{cli-struct}
+  \caption{Client structure}
+\end{figure}
 
-\section{USER STUDIES}
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/server-structure.pdf}
+  \label{svr-struct}
+  \caption{Server structure}
+\end{figure}
+
+\subsection*{Client Simulator}
+
+\subsection*{API Server}
+The API server utilizes Spray to build a REST API. In each unique REST route either an entity is deserialized using Spray-JSON or parameters are extracted from the route URI. Once the inputs are extracted, they are passed by message, along with the \texttt{RequestContext} to a data manager Actor. This actor serializes requests to Facebook data objects and implements all of the business logic for the site. This includes creating users, pages, posts, albums, and pictures. It also allows these items to be looked up by ID and retrieved. Additionally, auxiliary functions such as adding friends are implemented here due to the easy data object access.
+
+One limitation of this approach is that all of the data objects are stored in one Actor instance. This makes programming easy, but since actors are single threaded and can only process one message at a time, this becomes a limitation. A solution to this would be to have a more generic way of storing data such that any Actor could manage a chunk of user data. Then the API frontend would have to message a router to figure out which Actor was responsible for the required objects. This would increase the parallelism of the API server.
+
+\section*{User Studies}
 We generated our users based on these user studies. They are a combination of actual Facebook studies and studies on the general population.
-\subsection{Age}
+\subsection*{Age}
 \begin{table}[H]
 \centering
 \begin{tabular}{|p{2cm}||p{2cm}|} 
@@ -36,7 +59,7 @@ We generated our users based on these user studies. They are a combination of ac
 \label{table:1}
 \end{table}
 
-\subsection{Relationship Status}
+\subsection*{Relationship Status}
 \begin{table}[H]
 \centering
 \begin{tabular}{|p{3cm}||p{3cm}|} 
@@ -58,7 +81,7 @@ We generated our users based on these user studies. They are a combination of ac
 \label{table:2}
 \end{table}
 
-\subsection{Political Affiliation}
+\subsection*{Political Affiliation}
 \begin{table}[H]
 \centering
 \begin{tabular}{|p{3cm}||p{3cm}|} 
@@ -76,7 +99,7 @@ We generated our users based on these user studies. They are a combination of ac
 \label{table:3}
 \end{table}
 
-\subsection{Interested In}
+\subsection*{Interested In}
 \begin{table}[H]
 \centering
 \begin{tabular}{|p{3cm}||p{3cm}|} 
@@ -94,18 +117,19 @@ We generated our users based on these user studies. They are a combination of ac
 \label{table:4}
 \end{table}
 
-\subsection{Facebook Activity}
+\subsection*{Facebook Activity}
 \begin{figure}[H]
   \includegraphics[width=\linewidth]{fbact.png}
   \caption{Share of Active Users. \cite{fbactwebsite} We did not have time to implement Facebook activity according to user statistics, but we found some interesting studies on active users.}
   \label{fig:fbact}
 \end{figure}
 
-\section{TESTING}
+\section*{Testing}
 Tests
 
-\section*{REFERENCES}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin References
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{thebibliography}{99}
 
 \bibitem{sproutsocialwebsite} 

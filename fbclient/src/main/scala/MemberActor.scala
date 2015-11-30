@@ -13,10 +13,6 @@ class MemberActor(ent : UserEnt, loadConfig : Double)(implicit system: ActorSyst
   var albumCount = 0
   var pictureCount = 0
 
-  schedulePosting((randomTime+20000) * loadConfig)
-  scheduleAlbumPosting((randomTime+30000) * loadConfig)
-  schedulePicturePosting((randomTime+30000) * loadConfig)
-
   override def preStart = {
     //log.info("Starting as " + context.self.path)
   }
@@ -31,6 +27,12 @@ class MemberActor(ent : UserEnt, loadConfig : Double)(implicit system: ActorSyst
         val s1 = ent.id.toString
         val s2 = friendList.friends(i).toString
         Network.post("/user/" +s1+ "/add_friend/"+s2)
+      }
+
+      if(friendList.friends.nonEmpty) {
+        schedulePosting((randomTime + 20000) * loadConfig)
+        scheduleAlbumPosting((randomTime + 30000) * loadConfig)
+        schedulePicturePosting((randomTime + 30000) * loadConfig)
       }
     }
 
