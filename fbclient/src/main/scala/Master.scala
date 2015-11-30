@@ -48,7 +48,7 @@ class Master(implicit system: ActorSystem) extends Actor with ActorLogging {
       var friendList = ArrayBuffer[Identifier]()
       var c = 0
 
-      val amtOfFriends = rand.nextInt((userIDlist.size*0.4).toInt)
+      val amtOfFriends = rand.nextInt((userIDlist.size*0.4).toInt) + 2
       //println("Adding " + amtOfFriends + " for user " + userIDlist(i))
 
       do {

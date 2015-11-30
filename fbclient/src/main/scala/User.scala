@@ -7,6 +7,9 @@ object User {
   val fileStatus = "TextFiles/Status.txt"
   val posts = FBUtil.parseFile(fileStatus)
 
+  val fileAbout = "TextFiles/About.txt"
+  val abouts = FBUtil.parseFile(fileAbout)
+
   def generateBirthday: DateTime = {
     /*0% 		13 - 17
     15%		18 - 24
@@ -106,6 +109,13 @@ object User {
     var about: String = ""
     val i: Integer = Random.nextInt(aboutArr.size)
     about = aboutArr(i)
+    about
+  }
+
+  def generateDesc : String = {
+    var about: String = ""
+    val i: Integer = Random.nextInt(abouts.size)
+    about = abouts(i)
     about
   }
 
