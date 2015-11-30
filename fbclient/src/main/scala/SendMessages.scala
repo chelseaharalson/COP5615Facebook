@@ -13,11 +13,11 @@ import scala.util.{Failure, Success}
 
 case class AddFriend(myID : Identifier, friendID : Identifier)
 
-class SendMessages() {
+object Network {
+  implicit val system = ActorSystem("network-system")
 
   def send(uri : String) = {
-    implicit val timeout = Timeout(5.seconds)
-    implicit val system = ActorSystem()
+    implicit val timeout = Timeout(10.seconds)
     import system.dispatcher
     // execution context for futures
 
@@ -31,6 +31,25 @@ class SendMessages() {
     val response: Future[HttpResponse] = pipeline.flatMap(_(request))
     response onComplete {
       case Success(r) => println(r.entity.asString)
+      case Failure(e) => e
+    }
+  }
+
+  def post(uri : String) = {
+    implicit val timeout = Timeout(10.seconds)
+    import system.dispatcher
+    // execution context for futures
+
+    val pipeline: Future[SendReceive] =
+      for (
+        Http.HostConnectorInfo(connector, _) <-
+        IO(Http) ? Http.HostConnectorSetup("localhost", port = 8080)
+      ) yield sendReceive(connector)
+
+    val request = Post(uri)
+    val response: Future[HttpResponse] = pipeline.flatMap(_(request))
+    response onComplete {
+      case Success(r) => ;//println(r.entity.asString)
       case Failure(e) => e
     }
   }
@@ -51,7 +70,6 @@ class SendMessages() {
   }*/
 
   def uploadFile() = {
-    implicit val system = ActorSystem()
     import system.dispatcher // execution context for futures below
 
     val pipeline = sendReceive
