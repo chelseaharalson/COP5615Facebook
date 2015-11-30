@@ -19,7 +19,6 @@ object FBAPI {
       hostname = args(0)
     }
 
-
     // bind to the host:port
     system.actorOf(Props(new HttpBinder(hostname, port)), "http-binder")
   }
