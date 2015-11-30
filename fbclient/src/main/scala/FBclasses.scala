@@ -1,6 +1,6 @@
 import scala.collection.mutable.ArrayBuffer
 
-case class InitMaster(numUsers : Int, numPages : Int)
+case class InitMaster(numUsers : Int, numPages : Int, loadFactor : Double)
 
 case class CreateUser(pFirstName : String, pLastName : String, pGender : Gender.EnumVal)
 case class AddFriends()

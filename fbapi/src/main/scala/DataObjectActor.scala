@@ -1,3 +1,5 @@
+import java.io._
+
 import akka.actor.{Cancellable, ActorLogging, Actor}
 import spray.routing.RequestContext
 import spray.http.StatusCodes._
@@ -40,7 +42,8 @@ class DataObjectActor extends Actor with ActorLogging {
 
   // Count requests per second
   var counter : Long = 0
-  var measurements = mutable.MutableList[Double]()
+  var totalCounter : Long = 0
+  var measurements = mutable.MutableList[Tuple2[Long, Double]]()
 
   // Global ID counter
   var nextId = 0
@@ -60,6 +63,7 @@ class DataObjectActor extends Actor with ActorLogging {
   var friendsList = mutable.HashMap[Identifier, FriendsList]()
 
   // Stats collection
+  var initialStartTime: Long = 0
   var startTime: Long = 0
   var endTime: Long = _
   var scheduler: Cancellable = _
@@ -72,6 +76,7 @@ class DataObjectActor extends Actor with ActorLogging {
 
     // start counting immediately
     startTime = System.currentTimeMillis
+    initialStartTime = startTime
 
     // periodic stats collection
     scheduler = context.system.scheduler.schedule(frequency,
@@ -119,10 +124,11 @@ class DataObjectActor extends Actor with ActorLogging {
     case PrintStats() =>
       println()
       println()
-      val reqPerSec = (counter.toDouble/(System.currentTimeMillis - startTime).toDouble) * 1000
+      val now = System.currentTimeMillis
+      val reqPerSec = (counter.toDouble/(now - startTime).toDouble) * 1000
       log.info("**** The average number of requests per second is : %.2f".format(reqPerSec))
 
-      measurements += reqPerSec
+      measurements += new Pair(now-initialStartTime, reqPerSec)
 
       // reset the stats
       counter = 0
@@ -130,20 +136,9 @@ class DataObjectActor extends Actor with ActorLogging {
     case StopServer() =>
       log.info("Stopping API server")
 
-      var avg : Double = 0.0
-      val builder = mutable.StringBuilder.newBuilder
-      for(i <- measurements.indices) {
-        val m : Double = measurements(i)
-        builder.append("%.2f".format(m))
+      printStats
+      writeStatsLog
 
-        if(i+1 != measurements.size)
-          builder.append(", ")
-
-        avg += m
-      }
-
-      log.info("Final stats measurements: " + builder.result())
-      log.info("Average R/S: %.2f".format(avg/measurements.size))
       context.system.shutdown()
 
     // ################# Creation
@@ -417,6 +412,58 @@ class DataObjectActor extends Actor with ActorLogging {
       firstCount = false
       runStats()
     }
+
     counter += 1
+    totalCounter += 1
+  }
+
+  def getStatsInfo : (Double, Double, Long, String) = {
+    var avg : Double = 0.0
+    var max : Double = 0.0
+
+    val builder = mutable.StringBuilder.newBuilder
+    for(i <- measurements.indices) {
+      val m : Double = measurements(i)._2
+      builder.append("%.2f".format(m))
+
+      if(i+1 != measurements.size)
+        builder.append(", ")
+
+      if(m > max)
+        max = m
+
+      avg += m
+    }
+
+    avg /= measurements.size
+
+    (avg, max, totalCounter, builder.result())
+  }
+
+  def printStats = {
+    val (avg, max, totalCounter, all) = getStatsInfo
+
+    log.info("Final stats measurements: " + all)
+    log.info("Peak R/S: %.2f".format(max))
+    log.info("Average R/S: %.2f".format(avg))
+    log.info("Total requests: " + totalCounter)
+  }
+
+  def writeStatsLog = {
+    val logFile = new PrintWriter(new File("fbapi-stats-%d.csv".format(initialStartTime)))
+
+    logFile.println("# Start time %d".format(initialStartTime))
+
+    for(i <- measurements.indices) {
+      logFile.println("%d,%.2f".format(measurements(i)._1, measurements(i)._2))
+
+    }
+
+    val (avg, max, totalCounter, _) = getStatsInfo
+    logFile.println("# End time %d".format(System.currentTimeMillis))
+    logFile.println("# Peak R/S: %.2f".format(max))
+    logFile.println("# Average R/S: %.2f".format(avg))
+    logFile.println("# Total requests: " + totalCounter)
+    logFile.close()
   }
 }

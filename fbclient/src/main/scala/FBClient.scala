@@ -4,6 +4,8 @@ object FBClient {
   def main(args: Array[String]): Unit = {
     val numPages = 20
     val numUsers = 200
+    // smaller is more load
+    val loadFactor = 0.2
 
     if(args.length >= 1) {
       Network.Hostname = args(0)
@@ -13,6 +15,6 @@ object FBClient {
 
     implicit val system = ActorSystem("Facebook-System")
     val master = system.actorOf(Props(new Master()), "master")
-    master ! InitMaster(numUsers, numPages)
+    master ! InitMaster(numUsers, numPages, loadFactor)
   }
 }

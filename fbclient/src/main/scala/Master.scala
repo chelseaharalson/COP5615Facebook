@@ -14,6 +14,8 @@ class Master(implicit system: ActorSystem) extends Actor with ActorLogging {
   var userIDlist = ArrayBuffer[Identifier]()
   var numUsers = 0
   var numPages = 0
+  var girlsToBoys = 0.5
+  var loadFactor : Double = _
 
   var masterState = MasterState.Init
 
@@ -22,7 +24,7 @@ class Master(implicit system: ActorSystem) extends Actor with ActorLogging {
       case MasterState.Init =>
         masterState = MasterState.CreateUsers
 
-        context.actorOf(Props(new CreateUsersTask(numUsers, 0.5)), "create-users")
+        context.actorOf(Props(new CreateUsersTask(numUsers, girlsToBoys, loadFactor)), "create-users")
       case MasterState.CreateUsers =>
         masterState = MasterState.CreatePages
 
@@ -69,9 +71,10 @@ class Master(implicit system: ActorSystem) extends Actor with ActorLogging {
   }
 
   def receive = {
-    case InitMaster(nUsers, nPages) =>
+    case InitMaster(nUsers, nPages, lFactor) =>
       numUsers = nUsers
       numPages = nPages
+      loadFactor = lFactor
       advance
     case TaskCompletion(res) =>
       if(!res) {
