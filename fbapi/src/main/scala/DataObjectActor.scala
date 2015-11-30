@@ -1,9 +1,10 @@
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{Cancellable, ActorLogging, Actor}
 import spray.routing.RequestContext
 import spray.http.StatusCodes._
 import spray.http.{StatusCode, StatusCodes}
 import scala.collection.mutable
 import FacebookJsonSupport._
+import scala.concurrent.duration._
 
 // Entity creation
 case class CreateUser(ctx : RequestContext, form : UserCreateForm)
@@ -29,13 +30,16 @@ case class GetPostsByUser(ctx : RequestContext, uid : Identifier)
 case class GetUserList(ctx : RequestContext, uid : Identifier)
 case class GetPageList(ctx : RequestContext, uid : Identifier)
 
-// TODO WANT: Editing functions
-// TODO WANT: Removal functions
+// Stats
+case class PrintStats()
 
 
 class DataObjectActor extends Actor with ActorLogging {
   // Response wrapper
   type FacebookResponse = (StatusCode, Object)
+
+  // Count requests per second
+  var counter = 0
 
   // Global ID counter
   var nextId = 0
@@ -54,10 +58,25 @@ class DataObjectActor extends Actor with ActorLogging {
   // [ Auxiliary object storage ]
   var friendsList = mutable.HashMap[Identifier, FriendsList]()
 
+  var startTime: Long = 0
+  var endTime: Long = _
+  var scheduler: Cancellable = _
+  var duration = new FiniteDuration(60000, MILLISECONDS)
+
+  //startTime = System.currentTimeMillis
+  runStats()
+  def runStats() {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    scheduler = context.system.scheduler.scheduleOnce(
+      duration,
+      self,
+      PrintStats())
+  }
+
   /////////////////////////////////////////////////////////////////////////
 
   /**
-    * Helper method that converts a FacebookResponse to a marshallable objet
+    * Helper method that converts a FacebookResponse to a marshallable object
     * @param ctx Request context
     * @param resp Facebook response content
     */
@@ -82,6 +101,18 @@ class DataObjectActor extends Actor with ActorLogging {
   }
 
   def receive = {
+    // ################# Stats
+    case PrintStats() =>
+      if((System.currentTimeMillis - startTime).millis.toMinutes >= (1 minute).toMinutes) {
+        println()
+        println()
+        val reqPerSec = (counter.toFloat/(System.currentTimeMillis - startTime).toFloat) * 1000
+        log.info("The average number of requests per second is : " + reqPerSec)
+        println("Shutting down the system.")
+        context.system.shutdown()
+      }
+      runStats()
+
     // ################# Creation
     case CreateUser(ctx, form) =>
       log.info("Creating user " + form.first_name + " " + form.last_name)
@@ -207,6 +238,11 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createPost(ownerId : Identifier, targetId : Identifier, form : PostCreateForm) : FacebookResponse = {
+    if (startTime == 0) {
+      startTime = System.currentTimeMillis
+    }
+    counter = counter + 1
+
     val id = new Identifier(getNextId)
 
     val ent = new PostEnt(id,
@@ -226,6 +262,11 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createAlbum(ownerId : Identifier, form : AlbumCreateForm) : FacebookResponse = {
+    if (startTime == 0) {
+      startTime = System.currentTimeMillis
+    }
+    counter = counter + 1
+
     val id = new Identifier(getNextId)
 
     val ent = new AlbumEnt(id,
@@ -245,6 +286,11 @@ class DataObjectActor extends Actor with ActorLogging {
     * @return FacebookResponse
     */
   def createPicture(pAlbumId : Identifier, form : PictureCreateForm) : FacebookResponse = {
+    if (startTime == 0) {
+      startTime = System.currentTimeMillis
+    }
+    counter = counter + 1
+
     val id = new Identifier(getNextId)
 
     val ent = new PictureEnt(id,
