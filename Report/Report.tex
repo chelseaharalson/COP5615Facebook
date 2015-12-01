@@ -15,27 +15,44 @@
 \maketitle % this produces the title block
  
 \section*{Code Structure}
-Client/Server
+
+\subsection*{Client Simulator}
+
+The client simulator is structured to create users (with each having their own actor), pages, and to have users make friends. Once these initial tasks are complete, the user actors begin simulating activity. The structure of the simulator is show in \autoref{cli-struct}. Based off of a certain ``load factor'' users will post more frequently. This can be thought of as their aggressiveness.
+
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.5]{diagrams/client-structure.pdf}
-  \label{cli-struct}
   \caption{Client structure}
+  \label{cli-struct}
 \end{figure}
+
+\subsection*{API Server}
+The API server utilizes Spray to build a REST API. In each unique REST route either an entity is deserialized using Spray-JSON or parameters are extracted from the route URI. Once the inputs are extracted, they are passed by message, along with the \texttt{RequestContext} to a data manager Actor. This actor serializes requests to Facebook data objects and implements all of the business logic for the site. This includes creating users, pages, posts, albums, and pictures. It also allows these items to be looked up by ID and retrieved. Additionally, auxiliary functions such as adding friends are implemented here due to the easy data object access. This is shown in \autoref{svr-struct}.
 
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.5]{diagrams/server-structure.pdf}
-  \label{svr-struct}
   \caption{Server structure}
+  \label{svr-struct}
 \end{figure}
 
-\subsection*{Client Simulator}
-
-\subsection*{API Server}
-The API server utilizes Spray to build a REST API. In each unique REST route either an entity is deserialized using Spray-JSON or parameters are extracted from the route URI. Once the inputs are extracted, they are passed by message, along with the \texttt{RequestContext} to a data manager Actor. This actor serializes requests to Facebook data objects and implements all of the business logic for the site. This includes creating users, pages, posts, albums, and pictures. It also allows these items to be looked up by ID and retrieved. Additionally, auxiliary functions such as adding friends are implemented here due to the easy data object access.
-
 One limitation of this approach is that all of the data objects are stored in one Actor instance. This makes programming easy, but since actors are single threaded and can only process one message at a time, this becomes a limitation. A solution to this would be to have a more generic way of storing data such that any Actor could manage a chunk of user data. Then the API frontend would have to message a router to figure out which Actor was responsible for the required objects. This would increase the parallelism of the API server.
+
+\section*{REST API}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{1cm}|p{5.5cm}|p{5.5cm}|p{2.53cm}|} 
+ \hline
+ Verb  & Route & Description  & Body\\ [0.5ex] \hline\hline
+ POST  & /user/ & Creates a new user with the parameters & UserCreateForm\\ \hline
+ GET & /user/\{user-id\} & Get a user by ID & UserEnt \\ \hline
+ POST & /user/\{user-id\}/add\_friend/\{f-id\} & Add a friend from user-id to f-id (friend ID) &\\ \hline
+ GET & /post/\{post-id\} &  & \\ [1ex] \hline
+\end{tabular}
+\caption{Facebook REST API}
+\label{table:api}
+\end{table}
 
 \section*{User Studies}
 We generated our users based on these user studies. They are a combination of actual Facebook studies and studies on the general population.
@@ -129,7 +146,57 @@ Worldwide, there are over 1.49 billion monthly active Facebook users \cite{fbsta
 \noindent In a study conducted from 2007 to 2010 \cite{fbstats2website}, the three biggest usage spikes of Facebook occurred on weekdays at 11:00 AM, 3:00 PM, and 8:00 PM. Facebook users are less active on Sundays compared to all days in the week.
 
 \section*{Testing}
-Tests
+For testing, our primary metrics were the number of users simultaneously using the API and the number of sustained API requests per second. To show how the number of requests per second (hereafter r/s) increased, we used 4 clients on separate servers, each managing the same number of users. This means that each client was running the total number of users divided by 4. The plots showing the r/s over time are below.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-400.png}
+  \caption{400 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-800.png}
+  \caption{800 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-2000.png}
+  \caption{2000 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-4000.png}
+  \caption{4000 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-4800.png}
+  \caption{4800 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-6000.png}
+  \caption{6000 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/rps-8000.png}
+  \caption{8000 user simulation}
+  %\label{svr-struct}
+\end{figure}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Begin References
