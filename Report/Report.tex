@@ -28,7 +28,7 @@ The client simulator is structured to create users (with each having their own a
 \end{figure}
 
 \subsection*{API Server}
-The API server utilizes Spray to build a REST API. In each unique REST route either an entity is deserialized using Spray-JSON or parameters are extracted from the route URI. Once the inputs are extracted, they are passed by message, along with the \texttt{RequestContext} to a data manager Actor. This actor serializes requests to Facebook data objects and implements all of the business logic for the site. This includes creating users, pages, posts, albums, and pictures. It also allows these items to be looked up by ID and retrieved. Additionally, auxiliary functions such as adding friends are implemented here due to the easy data object access. This is shown in \autoref{svr-struct}.
+The API server utilizes Spray to build a REST API using the Spray-routing DSL. In each unique REST route either an entity is deserialized using Spray-JSON or parameters are extracted from the route URI. Once the inputs are extracted, they are passed by message, along with the \texttt{RequestContext} to a data manager Actor. This actor serializes requests to Facebook data objects and implements all of the business logic for the site. This includes creating users, pages, posts, albums, and pictures. It also allows these items to be looked up by ID and retrieved. Additionally, auxiliary functions such as adding friends are implemented here due to the easy data object access. This is shown in \autoref{svr-struct}.
 
 \begin{figure}[H]
   \centering
@@ -39,7 +39,18 @@ The API server utilizes Spray to build a REST API. In each unique REST route eit
 
 One limitation of this approach is that all of the data objects are stored in one Actor instance. This makes programming easy, but since actors are single threaded and can only process one message at a time, this becomes a limitation. A solution to this would be to have a more generic way of storing data such that any Actor could manage a chunk of user data. Then the API frontend would have to message a router to figure out which Actor was responsible for the required objects. This would increase the parallelism of the API server.
 
+For organizing data, all major objects are considered ``entities'' and all derive from a similar base class (\autoref{ents}). This base class holds common attributes such as identifier and modified\_time. For example, UserEnt which holds a user's profile information derives from FacebookEntity. Each specialized Ent has its own JSON serialization and deserialization routines which allow it to be communicated over HTTP.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.5]{diagrams/entity-hierarchy.pdf}
+  \caption{Entity hierarchy}
+  \label{ents}
+\end{figure}
+
 \section*{REST API}
+Below is a simplified table describing the Facebook REST API.
+
 \begin{table}[H]
 \centering
 \begin{tabular}{|p{1cm}|p{5.5cm}|p{5.5cm}|p{2.53cm}|} 
@@ -47,15 +58,25 @@ One limitation of this approach is that all of the data objects are stored in on
  Verb  & Route & Description  & Body\\ [0.5ex] \hline\hline
  POST  & /user/ & Creates a new user with the parameters & UserCreateForm\\ \hline
  GET & /user/\{user-id\} & Get a user by ID & UserEnt \\ \hline
- POST & /user/\{user-id\}/add\_friend/\{f-id\} & Add a friend from user-id to f-id (friend ID) &\\ \hline
- GET & /post/\{post-id\} &  & \\ [1ex] \hline
+ POST & /user/\{user-id\}/add\_friend/\{f-id\} & Add a friend from user-id to f-id (friend ID) & TextResult \\ \hline
+ GET & /user/\{user-id\}/friends & Get user-id's friends list & Array[Identifier] \\ \hline
+ GET & /post/\{post-id\} & Retrieve a post by ID  & PostEnt \\ [1ex] \hline
+ POST & /page/ & Creates a new page & PageEnt \\ [1ex] \hline
+ GET & /page/{page-id} & Get page by ID & PageEnt \\ [1ex] \hline
+ POST & /album/ & Creates a new album & AlbumEnt \\ [1ex] \hline
+ GET & /album/{album-id} & Get album by ID & AlbumEnt \\ [1ex] \hline
+ POST & /picture/ & Creates a new picture & PictureEnt \\ [1ex] \hline
+ GET & /picture/{picture-id} & Get picture by ID & PictureEnt \\ [1ex] \hline
 \end{tabular}
 \caption{Facebook REST API}
 \label{table:api}
 \end{table}
 
+There are more API routes in the actual server, but \autoref{table:api} has a good sample of the routes. Note, many of the 
+
 \section*{User Studies}
 We generated our users based on these user studies. They are a combination of actual Facebook studies and studies on the general population.
+kk
 \subsection*{Age}
 \begin{table}[H]
 \centering
@@ -197,6 +218,7 @@ For testing, our primary metrics were the number of users simultaneously using t
   %\label{svr-struct}
 \end{figure}
 
+As you can see, the max r/s we achieved was about 17,000. This appears to be a limit of our API server. On an 8 core machine with 2000 users, we were seeing about 370\% CPU utilization. This should have been close to 800\% if we were fully parallelized. When hitting this limit, we noticed that client connections to the API server were timing out. This means the Spray-HTTP listener was not able to keep up with the connection requests or connections were being buffered. Additionally, the API server used one Actor to manage the Facebook data access. This is limiting due to how Akka messages are handled. For a future project, a different, more scalable architecture would have to be created.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Begin References
