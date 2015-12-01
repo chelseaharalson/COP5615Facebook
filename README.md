@@ -42,13 +42,13 @@ Testing with 200 users, 20 pages, and a load of 1
 File Structure
 ==============
 COP5615Facebook/ - IntelliJ IDEA project root and SBT build root (code)
-README.txt - this file
+README.md - this file
 
 Build Environment
 =================
-Java SDK 1.8
+``` Java SDK 1.8
 Scala SDK 2.11.7
-SBT version 0.13.8
+SBT version 0.13.8 ``` 
 
 Build Tool
 ==========
