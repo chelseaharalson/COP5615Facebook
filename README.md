@@ -11,8 +11,9 @@ SERVER:
 usage: sbt "fbapi/run"
 
 CLIENT:
-<pre> usage: sbt "fbclient/run [hostname] [num users] [num pages] [load]"
-hostname: a domain name
+<pre> 
+usage: sbt "fbclient/run [hostname] [num users] [num pages] [load]" 
+ hostname: a domain name
  num users: number of users to simulate
  num pages: number of pages to create
  load: time slider for content creation rate (must be >= 1)
