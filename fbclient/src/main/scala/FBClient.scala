@@ -47,5 +47,20 @@ object FBClient {
     implicit val system = ActorSystem("Facebook-System")
     val master = system.actorOf(Props(new Master()), "master")
     master ! InitMaster(numUsers, numPages, 1.0/loadFactor)
+
+    // TESTING KEY GENERATION
+    /*val originalText = "Text to be encrypted "
+    val rsa = new RSAhelper()
+    val keymap = rsa.generateKeys()
+    for ((key, value) <- keymap) {
+      //println (key + "-->" + value)
+      val cipherText = rsa.encrypt(originalText, key)
+      val plainText = rsa.decrypt(cipherText, value)
+
+      println("Original: " + originalText)
+      println("Encrypted: " + cipherText.toString)
+      println("Decrypted: " + plainText)
+    }*/
+
   }
 }
