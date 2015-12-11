@@ -6,4 +6,3 @@ tmp/
 out/
 *.swp
 /*.csv
-bcprov-jdk15on-153.jar

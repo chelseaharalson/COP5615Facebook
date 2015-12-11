@@ -14,29 +14,6 @@ class RSAhelper {
     val privateKey = kp.getPrivate()
 
     (publicKey, privateKey)
-
-    /*val fact = KeyFactory.getInstance("RSA")
-    val pub = fact.getKeySpec(kp.getPublic(), classOf[RSAPublicKeySpec])
-    val priv = fact.getKeySpec(kp.getPrivate(), classOf[RSAPrivateKeySpec])
-
-    val pubMod = pub.getModulus()
-    val pubExp = pub.getPublicExponent()
-    val privMod = priv.getModulus()
-    val privExp = priv.getPrivateExponent()*/
-
-    //println(publicKey.toString + "\n" + privateKey.toString)
-    //println()
-    //println(pubMod + "\n" + pubExp + "\n" + privMod + "\n" + privExp)
-
-    /*val pubKeySpec = new RSAPublicKeySpec(pubMod, pubExp)
-    val pubFact = KeyFactory.getInstance("RSA")
-    val pubKey = fact.generatePublic(pubKeySpec)
-
-    val privKeySpec = new RSAPrivateKeySpec(privMod, privExp)
-    val privFact = KeyFactory.getInstance("RSA")
-    val privKey = fact.generatePrivate(privKeySpec)
-
-    println(pubKey.toString + "   " + privKey.toString)*/
   }
 
   def encrypt(text : String, key : PublicKey) : Array[Byte] = {
@@ -86,7 +63,7 @@ class RSAhelper {
     pubKey
   }
 
-  def generateSignature(public_key : PublicKey, private_key : PrivateKey, text : String) : Array[Byte] = {
+  def generateSignature(private_key : PrivateKey, text : String) : Array[Byte] = {
     val signature = Signature.getInstance("SHA1withRSA")
     signature.initSign(private_key, new SecureRandom())
     val data = text.getBytes()
@@ -96,13 +73,14 @@ class RSAhelper {
     sigBytes
   }
 
-  def verifySignature(public_key : PublicKey, sigBytes : Array[Byte], text : String) = {
+  def verifySignature(public_key : PublicKey, sigBytes : Array[Byte], text : String) : Boolean = {
     val signature = Signature.getInstance("SHA1withRSA")
     signature.initVerify(public_key)
     val data = text.getBytes()
     signature.update(data)
     val verifies = signature.verify(sigBytes)
-    println("Signature verifies: " + verifies)
+    //println("Signature verifies: " + verifies)
+    verifies
   }
 
 }

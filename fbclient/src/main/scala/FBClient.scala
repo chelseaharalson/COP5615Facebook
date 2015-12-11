@@ -50,12 +50,16 @@ object FBClient {
     val master = system.actorOf(Props(new Master()), "master")
     master ! InitMaster(numUsers, numPages, 1.0/loadFactor)
 
+    //testSec()
+  }
+
+  def testSec() = {
     // TESTING KEY GENERATION
     /*val originalText = "Text to be encrypted "
     val rsa = new RSAhelper()
     val r = rsa.generateKeys()
     val pub = rsa.convertPublicKeyStr(r._1)
-    val sig = rsa.generateSignature(r._1, r._2, originalText)
+    val sig = rsa.generateSignature(r._2, originalText)
     rsa.verifySignature(r._1, sig, originalText)*/
 
     //println(rsa.getPublicKey(pub))
@@ -77,11 +81,12 @@ object FBClient {
     //println("cipher:\n" + Base64.getEncoder.encodeToString((encripted)))
     println("decrypt:\n" + rsa.decrypt(encripted, r._2))*/
 
-    /*val aes = new AEShelper()
-    val originalText = "Text to be encrypted "
-    val key = aes.generateKey()
-    val e = aes.encrypt(key, originalText)
-    val s = aes.decrypt(key, e)
-    println("Result: " + s)*/
+    val aes = new AEShelper()
+    val originalText = "This is test text."
+    val key = aes.generateKey()._1
+    val nonce = aes.generateKey()._2
+    val e = aes.encrypt(key, nonce, originalText)
+    val s = aes.decrypt(key, nonce, e)
+    println("Result: " + s)
   }
 }
