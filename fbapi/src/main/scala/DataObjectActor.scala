@@ -144,7 +144,7 @@ class DataObjectActor extends Actor with ActorLogging {
     // ################# Creation
     case CreateUser(ctx, form) =>
       countReq
-      log.info("Creating user " + form.first_name + " " + form.last_name)
+      log.info("Creating user " + form.first_name + " " + form.last_name + " " + form.public_key)
       finalize(ctx, createUser(form))
     case CreatePage(ctx, form) =>
       countReq
@@ -238,7 +238,8 @@ class DataObjectActor extends Actor with ActorLogging {
       interested_in = form.interested_in,
       political = form.political,
       tz = form.tz,
-      status = "" // TODO: either remove this field or get some data
+      status = "", // TODO: either remove this field or get some data
+      public_key = form.public_key
     )
 
     // start with an empty friends list

@@ -1,4 +1,6 @@
 import akka.actor._
+import java.security._
+import java.util.Base64
 
 object FBClient {
   def usage = {
@@ -51,16 +53,34 @@ object FBClient {
     // TESTING KEY GENERATION
     /*val originalText = "Text to be encrypted "
     val rsa = new RSAhelper()
-    val keymap = rsa.generateKeys()
-    for ((key, value) <- keymap) {
-      //println (key + "-->" + value)
-      val cipherText = rsa.encrypt(originalText, key)
-      val plainText = rsa.decrypt(cipherText, value)
+    val r = rsa.generateKeys()
+    val pub = rsa.convertPublicKeyStr(r._1)
+    val sig = rsa.generateSignature(r._1, r._2, originalText)
+    rsa.verifySignature(r._1, sig, originalText)*/
 
-      println("Original: " + originalText)
-      println("Encrypted: " + cipherText.toString)
-      println("Decrypted: " + plainText)
-    }*/
+    //println(rsa.getPublicKey(pub))
+    //println(pub)
+    //println(r._1)
 
+    /*val cipherText = rsa.encrypt(originalText, r._1)
+    val plainText = rsa.decrypt(cipherText, r._2)
+    println("Original: " + originalText)
+    println("Encrypted: " + cipherText.toString)
+    println("Decrypted: " + plainText)*/
+
+    //Security.addProvider(new BouncyCastleProvider())
+    /*val text = "this is the input text"
+    var encripted = Array[Byte]()
+    println("input:\n" + text)
+    encripted = rsa.encrypt(text, r._1)
+    println("cipher:\n" + rsa.convertToBase64(encripted))
+    //println("cipher:\n" + Base64.getEncoder.encodeToString((encripted)))
+    println("decrypt:\n" + rsa.decrypt(encripted, r._2))*/
+
+    /*val aes = new AEShelper()
+    val key = aes.generateKey()
+    val e = aes.encrypt(key, originalText)
+    val s = aes.decrypt(key, e)
+    println(s)*/
   }
 }

@@ -10,8 +10,7 @@ case class UserCreateForm(first_name : String,
                    relationship_status : RelationshipStatus.EnumVal,
                    interested_in : Gender.EnumVal,
                    political : PoliticalAffiliation.EnumVal,
-                   tz : TimeZone)
+                   tz : TimeZone,
+                   public_key : String)
 
 case class addFriend(requester : Identifier, target : Identifier)
-
-
