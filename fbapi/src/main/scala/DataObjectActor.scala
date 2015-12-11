@@ -144,7 +144,7 @@ class DataObjectActor extends Actor with ActorLogging {
     // ################# Creation
     case CreateUser(ctx, form) =>
       countReq
-      log.info("Creating user " + form.first_name + " " + form.last_name + " " + form.public_key)
+      log.info("Creating user " + form.first_name + " " + form.last_name)
       finalize(ctx, createUser(form))
     case CreatePage(ctx, form) =>
       countReq
