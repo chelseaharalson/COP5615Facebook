@@ -78,9 +78,10 @@ object FBClient {
     println("decrypt:\n" + rsa.decrypt(encripted, r._2))*/
 
     /*val aes = new AEShelper()
+    val originalText = "Text to be encrypted "
     val key = aes.generateKey()
     val e = aes.encrypt(key, originalText)
     val s = aes.decrypt(key, e)
-    println(s)*/
+    println("Result: " + s)*/
   }
 }
