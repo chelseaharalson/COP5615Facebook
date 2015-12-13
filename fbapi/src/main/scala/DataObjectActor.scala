@@ -152,7 +152,7 @@ class DataObjectActor extends Actor with ActorLogging {
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
       countReq
-      log.info("Creating post FROM USER " + owner + " TO " + target + " : " + form.content)
+      log.info("Creating post from user " + owner + " to user " + target)
       finalize(ctx, createPost(owner,target,form))
     case CreateAlbum(ctx, owner, form) =>
       countReq

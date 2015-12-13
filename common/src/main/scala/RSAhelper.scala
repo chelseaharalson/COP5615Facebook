@@ -1,8 +1,7 @@
 import java.security._
-import java.security.spec.{X509EncodedKeySpec, RSAPrivateKeySpec, RSAPublicKeySpec}
+import java.security.spec.{X509EncodedKeySpec}
 import javax.crypto.Cipher
 import java.util.Base64
-import scala.collection.mutable
 
 class RSAhelper {
 

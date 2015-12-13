@@ -94,7 +94,7 @@ object Network {
       case Success(ent) =>
         val aes = new AEShelper()
         val decMsg = aes.decryptMessage(ent.content,private_key,ent.key,ent.nonce)
-        println("********************************** " + decMsg)
+        println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
 
       case Failure(e) =>
         println("Failed to get post!")

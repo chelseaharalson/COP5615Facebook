@@ -24,7 +24,7 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
     case AddFriendList(userList) => {
       //println("FRIEND LIST : " + userList)
       friendList = new FriendsList(mutable.MutableList[Identifier](userList.toSeq : _*))
-      println("Friend list for " + ent.first_name + " " + ent.last_name + " (by Id): " + friendList)
+      println("Friend list for " + ent.first_name + " " + ent.last_name + " (" + ent.id + "): " + friendList)
 
       for (i <- 0 until friendList.friends.size) {
         val s1 = ent.id.toString

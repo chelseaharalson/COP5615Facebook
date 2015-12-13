@@ -1,8 +1,7 @@
 import javax.crypto._
 import javax.crypto.spec.{SecretKeySpec, GCMParameterSpec}
-import java.nio.ByteBuffer
 import java.security.{PrivateKey, SecureRandom}
-import java.util.{Base64, Arrays}
+import java.util.{Base64}
 
 class AEShelper {
 
