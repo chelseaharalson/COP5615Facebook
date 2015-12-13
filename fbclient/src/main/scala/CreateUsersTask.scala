@@ -81,7 +81,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
 
       val r = rsa.generateKeys()
       val public_key = rsa.convertPublicKeyStr(r._1)
-      val private_key = rsa.convertPrivateKeyStr(r._2)
+      val private_key = r._2
 
       val first = girlFirstNames(rand.nextInt(girlFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))
@@ -102,7 +102,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     for (i <- 0 until numBoys) {
       val r = rsa.generateKeys()
       val public_key = rsa.convertPublicKeyStr(r._1)
-      val private_key = rsa.convertPrivateKeyStr(r._2)
+      val private_key = r._2
 
       val first = boyFirstNames(rand.nextInt(boyFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))

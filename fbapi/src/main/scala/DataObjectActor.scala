@@ -152,7 +152,7 @@ class DataObjectActor extends Actor with ActorLogging {
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
       countReq
-      log.info("Creating post " + form.content + " FROM USER " + owner + " TO " + target)
+      log.info("Creating post FROM USER " + owner + " TO " + target + " : " + form.content)
       finalize(ctx, createPost(owner,target,form))
     case CreateAlbum(ctx, owner, form) =>
       countReq
@@ -288,8 +288,6 @@ class DataObjectActor extends Actor with ActorLogging {
     key = form.key,
     nonce = form.nonce
     )
-
-    //println("@@@@@@@@@@@@ KEY: " + form.key)
 
     postMap += (id -> ent)
 

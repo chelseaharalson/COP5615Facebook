@@ -54,7 +54,6 @@ class AEShelper {
     val str_AESnonce = Base64.getEncoder.encodeToString(AESnonce)
 
     (encryptedMsg, str_RSA_AES_KEY, str_AESnonce)
-    //(encryptedMsg, strAESkey, str_AESnonce)
   }
 
   def decryptMessage(message : String, private_key : PrivateKey, rsa_pub_key : String, nonce : String) : String = {

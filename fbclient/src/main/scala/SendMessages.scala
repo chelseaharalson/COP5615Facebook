@@ -1,4 +1,5 @@
 import java.io.File
+import java.security.PrivateKey
 import spray.http.{MediaTypes, BodyPart, MultipartFormData}
 import akka.actor.ActorSystem
 import akka.io.IO
@@ -73,6 +74,31 @@ object Network {
       pipeline(Post(uri, PostCreateForm(content, key, nonce)))
 
     response
+  }
+
+  def getPost(uri : String, private_key : PrivateKey) = {
+    implicit val timeout = Timeout(10.seconds)
+    import system.dispatcher // execution context for futures
+    import FacebookJsonSupport._
+
+    val pipeline: HttpRequest => Future[PostEnt] = (
+      addHeader("X-My-Special-Header", "fancy-value")
+        ~> sendReceive
+        ~> unmarshal[PostEnt]
+      )
+
+    val response: Future[PostEnt] =
+      pipeline(Get(uri))
+
+    response onComplete{
+      case Success(ent) =>
+        val aes = new AEShelper()
+        val decMsg = aes.decryptMessage(ent.content,private_key,ent.key,ent.nonce)
+        println("********************************** " + decMsg)
+
+      case Failure(e) =>
+        println("Failed to get post!")
+    }
   }
 
   def addAlbum(uri : String, name : String, description : String) : Future[AlbumEnt] = {

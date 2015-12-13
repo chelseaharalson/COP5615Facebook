@@ -2,10 +2,10 @@ import java.security.PrivateKey
 import akka.actor.{ActorLogging, Actor, ActorSystem, Cancellable}
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.util.Random
+import scala.util.{Failure, Success, Random}
 //import scala.concurrent.ExecutionContext.Implicits.global
 
-class MemberActor(ent : UserEnt, loadConfig : Double, private_key : String)(implicit system: ActorSystem) extends Actor with ActorLogging {
+class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey)(implicit system: ActorSystem) extends Actor with ActorLogging {
   var scheduler: Cancellable = _
 
   var counter = 0
@@ -13,6 +13,8 @@ class MemberActor(ent : UserEnt, loadConfig : Double, private_key : String)(impl
   var randomTime = Random.nextInt(50000)
   var albumCount = 0
   var pictureCount = 0
+
+  var private_key = p_private_key
 
   override def preStart = {
     //log.info("Starting as " + context.self.path)
@@ -45,16 +47,31 @@ class MemberActor(ent : UserEnt, loadConfig : Double, private_key : String)(impl
       post = content
       val s1 = ent.id.toString
       val s2 = friendList.friends(r).toString
-      val pubKey = GlobalInfo.getPublicKey(friendList.friends(r))
-      val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
+      val pub_key = GlobalInfo.getPublicKey(friendList.friends(r))
+      if (!pub_key.equals("")) {
+        val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
 
+        val aes = new AEShelper()
+        val triple = aes.encryptMessage(post, pub_key)
 
+        import scala.concurrent.ExecutionContext.Implicits.global
+        Network.addPost(uri,triple._1,triple._2,triple._3) onComplete{
+          case Success(postent) =>
+            //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
+            context.actorSelection("../user" + s2) ! GetPost(postent.id)
 
-      Network.addPost(uri,post,pubKey,"")
+          case Failure(e) =>
+            println("Failed to add post!")
+        }
+      }
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
-      //import scala.concurrent.ExecutionContext.Implicits.global
-      //scheduler = context.system.scheduler.scheduleOnce(new FiniteDuration(rt, MILLISECONDS), self, DoPost(post))
+    }
+
+    case GetPost(postId) => {
+      val uri = Network.HostURI + "/post/" + postId.toString
+      Network.getPost(uri,private_key)
+      //println("Received " + postId.toString + "          " + ent.id.toString)
     }
 
     case DoAlbum(albumName,albumDescription) => {
@@ -89,6 +106,13 @@ class MemberActor(ent : UserEnt, loadConfig : Double, private_key : String)(impl
       self ! DoPost(userPost)
     }
   }
+
+  /*def scheduleGetPost(mili : Long) = {
+    import system.dispatcher
+    system.scheduler.scheduleOnce(mili milliseconds) {
+      self ! GetPost(new Identifier(22))
+    }
+  }*/
 
   def schedulePosting(mili : Double) : Unit = schedulePosting(mili.toLong)
 

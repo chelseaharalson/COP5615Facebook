@@ -150,7 +150,9 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
       annotate(JsObject(
         "owner" -> JsString(ent.owner.toString),
         "target" -> JsString(ent.target.toString),
-        "content" -> ent.content.toJson
+        "content" -> ent.content.toJson,
+        "key" -> ent.key.toJson,
+        "nonce" -> ent.nonce.toJson
       ), ent)
     }
 

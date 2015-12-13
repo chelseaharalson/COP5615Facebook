@@ -17,3 +17,5 @@ case class TimedOut()
 case class DoPost(content : String)
 case class DoAlbum(albumName : String, albumDescription : String)
 case class DoPicture(caption : String, fileId : Identifier)
+
+case class GetPost(postId : Identifier)
