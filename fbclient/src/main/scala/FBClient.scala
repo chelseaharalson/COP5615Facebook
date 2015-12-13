@@ -81,12 +81,57 @@ object FBClient {
     //println("cipher:\n" + Base64.getEncoder.encodeToString((encripted)))
     println("decrypt:\n" + rsa.decrypt(encripted, r._2))*/
 
+
+    /*val rsa = new RSAhelper()
+    val r = rsa.generateKeys()
+    val pub_key = r._1
+    val priv_key = r._2
+    val renc = rsa.encrypt("test", pub_key)
+    val srenc = Base64.getEncoder.encodeToString(renc)
+    val drenc = Base64.getDecoder.decode(srenc)
+
+    println("renc: " + renc)
+    println("srenc: " + srenc)
+    println("drenc: " + drenc)
+    val rs = rsa.decrypt(drenc,priv_key)
+    println(rs)*/
+
+
+
+
+
+
+    val rsa = new RSAhelper()
+    val r = rsa.generateKeys()
+    val pub_key = rsa.convertPublicKeyStr(r._1)
+    val priv_key = r._2
+
+
     val aes = new AEShelper()
-    val originalText = "This is test text."
+    val msg = "This is the test message."
+    val triple = aes.encryptMessage(msg, pub_key)
+
+    val strRSA = aes.decryptMessage(triple._1, priv_key, triple._2, triple._3)
+    println(strRSA)
+
+    //val objKey = aes.getSecretKey(strRSA)
+
+
+    //println("Result: " + s)
+
+
+
+
+    /*val originalText = "This is test text."
     val key = aes.generateKey()._1
+    val stringKey = Base64.getEncoder.encodeToString(key.getEncoded())
+    val objKey = aes.getSecretKey(stringKey)
     val nonce = aes.generateKey()._2
-    val e = aes.encrypt(key, nonce, originalText)
-    val s = aes.decrypt(key, nonce, e)
-    println("Result: " + s)
+    val strNonce = new String(nonce)
+    val arrNonce = strNonce.getBytes()
+    val e = aes.AESencrypt(objKey, arrNonce, originalText)
+
+    val s = aes.AESdecrypt(key, arrNonce, e)
+    println("Result: " + s)*/
   }
 }

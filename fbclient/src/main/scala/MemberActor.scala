@@ -1,10 +1,11 @@
+import java.security.PrivateKey
 import akka.actor.{ActorLogging, Actor, ActorSystem, Cancellable}
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.Random
 //import scala.concurrent.ExecutionContext.Implicits.global
 
-class MemberActor(ent : UserEnt, loadConfig : Double)(implicit system: ActorSystem) extends Actor with ActorLogging {
+class MemberActor(ent : UserEnt, loadConfig : Double, private_key : String)(implicit system: ActorSystem) extends Actor with ActorLogging {
   var scheduler: Cancellable = _
 
   var counter = 0
@@ -44,8 +45,12 @@ class MemberActor(ent : UserEnt, loadConfig : Double)(implicit system: ActorSyst
       post = content
       val s1 = ent.id.toString
       val s2 = friendList.friends(r).toString
+      val pubKey = GlobalInfo.getPublicKey(friendList.friends(r))
       val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
-      Network.addPost(uri,post)
+
+
+
+      Network.addPost(uri,post,pubKey,"")
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
       //import scala.concurrent.ExecutionContext.Implicits.global

@@ -58,7 +58,7 @@ object Network {
     }
   }
 
-  def addPost(uri : String, content : String) : Future[PostEnt] = {
+  def addPost(uri : String, content : String, key : String, nonce : String) : Future[PostEnt] = {
     implicit val timeout = Timeout(10.seconds)
     import system.dispatcher // execution context for futures
     import FacebookJsonSupport._
@@ -70,7 +70,7 @@ object Network {
       )
 
     val response: Future[PostEnt] =
-      pipeline(Post(uri, PostCreateForm(content)))
+      pipeline(Post(uri, PostCreateForm(content, key, nonce)))
 
     response
   }

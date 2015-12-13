@@ -81,6 +81,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
 
       val r = rsa.generateKeys()
       val public_key = rsa.convertPublicKeyStr(r._1)
+      val private_key = rsa.convertPrivateKeyStr(r._2)
 
       val first = girlFirstNames(rand.nextInt(girlFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))
@@ -88,7 +89,8 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
+          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -100,6 +102,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     for (i <- 0 until numBoys) {
       val r = rsa.generateKeys()
       val public_key = rsa.convertPublicKeyStr(r._1)
+      val private_key = rsa.convertPrivateKeyStr(r._2)
 
       val first = boyFirstNames(rand.nextInt(boyFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))
@@ -107,7 +110,8 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
+          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)

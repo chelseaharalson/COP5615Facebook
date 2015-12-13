@@ -284,8 +284,12 @@ class DataObjectActor extends Actor with ActorLogging {
     val ent = new PostEnt(id,
     owner = ownerId,
     target = targetId,
-    content = form.content
+    content = form.content,
+    key = form.key,
+    nonce = form.nonce
     )
+
+    //println("@@@@@@@@@@@@ KEY: " + form.key)
 
     postMap += (id -> ent)
 
