@@ -54,14 +54,18 @@ class AEShelper {
     val str_AESnonce = Base64.getEncoder.encodeToString(AESnonce)
 
     (encryptedMsg, str_RSA_AES_KEY, str_AESnonce)
+    //(encryptedMsg, strAESkey, str_AESnonce)
   }
 
   def decryptMessage(message : String, private_key : PrivateKey, rsa_pub_key : String, nonce : String) : String = {
-    val byteNonce = nonce.getBytes()
+    val byteNonce = Base64.getDecoder.decode(nonce)
+    val byteMessage = Base64.getDecoder.decode(message)
     val rsa = new RSAhelper()
-    val rsa_pub = Base64.getDecoder.decode(rsa_pub_key)
-    val strRSA = rsa.decrypt(rsa_pub,private_key)
-    strRSA
+    val byte_rsa_pub = Base64.getDecoder.decode(rsa_pub_key)
+    val str_aes_key = rsa.decrypt(byte_rsa_pub, private_key)
+    val aes_key = getSecretKey(str_aes_key)
+    val str_msg = AESdecrypt(aes_key, byteNonce, byteMessage)
+    str_msg
   }
 
   def getSecretKey(string_key : String) : SecretKey = {
