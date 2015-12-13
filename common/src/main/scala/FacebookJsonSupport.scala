@@ -91,22 +91,23 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
         "interested_in" -> ent.interested_in.toJson,
         "political" -> ent.political.toJson,
         "tz" -> ent.tz.toJson,
-        "status" -> JsString(ent.status)
+        "status" -> JsString(ent.status),
+        "public_key" -> JsString(ent.public_key)
       ), ent)
     }
 
     def read(value : JsValue) = {
       value.asJsObject.getFields("id", "modified_time", "first_name", "last_name", "birthday",
         "gender", "email", "about", "relationship_status",
-        "interested_in", "political", "tz", "status") match {
+        "interested_in", "political", "tz", "status", "public_key") match {
         case Seq(id, modified_time, JsString(first_name), JsString(last_name), birthday,
         gender, JsString(email), JsString(about), relationship_status,
-        interested_in, political, tz, JsString(status)
+        interested_in, political, tz, JsString(status), JsString(public_key)
         ) =>
           val ent = new UserEnt(id.convertTo[Identifier], first_name, last_name, birthday.convertTo[DateTime],
             gender.convertTo[Gender.EnumVal], email, about, relationship_status.convertTo[RelationshipStatus.EnumVal],
             interested_in.convertTo[Gender.EnumVal], political.convertTo[PoliticalAffiliation.EnumVal], tz.convertTo[TimeZone],
-            status
+            status, public_key
           )
           ent.modified_time = modified_time.convertTo[DateTime]
           ent
@@ -149,15 +150,17 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
       annotate(JsObject(
         "owner" -> JsString(ent.owner.toString),
         "target" -> JsString(ent.target.toString),
-        "content" -> ent.content.toJson
+        "content" -> ent.content.toJson,
+        "key" -> ent.key.toJson,
+        "nonce" -> ent.nonce.toJson
       ), ent)
     }
 
     def read(value : JsValue) = {
-      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content") match {
-        case Seq(id, modified_time, owner, target, JsString(content)) =>
+      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content", "key", "nonce") match {
+        case Seq(id, modified_time, owner, target, JsString(content), JsString(key), JsString(nonce)) =>
           val ent = new PostEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
-            target.convertTo[Identifier], content
+            target.convertTo[Identifier], content, key, nonce
           )
           ent.modified_time = modified_time.convertTo[DateTime]
           ent
@@ -211,9 +214,9 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   }
 
   // Forms JSON formats
-  implicit val userFormFormat  = jsonFormat10(UserCreateForm)
+  implicit val userFormFormat  = jsonFormat11(UserCreateForm)
   implicit val pageEntFormFormat = jsonFormat7(PageCreateForm)
-  implicit val postEntFormFormat = jsonFormat1(PostCreateForm)
+  implicit val postEntFormFormat = jsonFormat3(PostCreateForm)
   implicit val albumEntFormFormat = jsonFormat2(AlbumCreateForm)
   implicit val pictureFormFormat = jsonFormat2(PictureCreateForm)
 }
