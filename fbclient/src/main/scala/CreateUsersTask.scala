@@ -1,3 +1,4 @@
+import java.security.PublicKey
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
@@ -73,16 +74,23 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     val numGirls = (numUsers * girlsToBoysRatio).toInt
     val numBoys = numUsers - numGirls
 
+    val rsa = new RSAhelper()
+
     for (iFN <- 0 until numGirls) {
       counter = counter + 1
 
+      val r = rsa.generateKeys()
+      val public_key = rsa.convertPublicKeyStr(r._1)
+      val private_key = r._2
+
       val first = girlFirstNames(rand.nextInt(girlFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))
-      val form = createMemberForm(first, last, Gender.Female)
+      val form = createMemberForm(first, last, Gender.Female, public_key)
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
+          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -92,13 +100,18 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     }
 
     for (i <- 0 until numBoys) {
+      val r = rsa.generateKeys()
+      val public_key = rsa.convertPublicKeyStr(r._1)
+      val private_key = r._2
+
       val first = boyFirstNames(rand.nextInt(boyFirstNames.size))
       val last = lastNames(rand.nextInt(lastNames.size))
-      val form = createMemberForm(first, last, Gender.Male)
+      val form = createMemberForm(first, last, Gender.Male, public_key)
 
       addMember(form) onComplete{
         case Success(ent) =>
-          system.actorOf(Props(new MemberActor(ent, loadFactor)), "user" + ent.id)
+          system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
+          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -123,7 +136,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     response
   }
 
-  def createMemberForm(pFirstName: String, pLastName: String, pGender: Gender.EnumVal) = {
+  def createMemberForm(pFirstName: String, pLastName: String, pGender: Gender.EnumVal, pPublicKey: String) = {
     val firstName: String = pFirstName
     val lastName: String = pLastName
     val birthday: DateTime = User.generateBirthday
@@ -136,8 +149,9 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
     val political: PoliticalAffiliation.EnumVal = User.generatePoliticalStatus
     val last_updated: DateTime = DateTime.now
     val tz: TimeZone = TimeZone.getDefault
+    val public_key : String = pPublicKey
 
     UserCreateForm(firstName, lastName, birthday, gender, email, about, relationshipStatus,
-      interestedIn, political, tz)
+      interestedIn, political, tz, public_key)
   }
 }

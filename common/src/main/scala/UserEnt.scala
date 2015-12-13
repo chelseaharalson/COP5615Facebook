@@ -13,10 +13,11 @@ class UserEnt(id : Identifier,
              var interested_in : Gender.EnumVal,
              var political : PoliticalAffiliation.EnumVal,
              var tz : TimeZone,
-             var status : String) extends FacebookEntity(id) {
+             var status : String,
+             var public_key : String) extends FacebookEntity(id) {
 
   // default constructor for creating an empty person
   def this() = this(new Identifier(0), "", "", DateTime.now(), Gender.Unspecified, "", "",
                     RelationshipStatus.Complicated, Gender.Unspecified, PoliticalAffiliation.Independent,
-                    TimeZone.getDefault, "")
+                    TimeZone.getDefault, "", "")
 }

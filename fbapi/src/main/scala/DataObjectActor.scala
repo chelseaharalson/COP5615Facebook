@@ -152,7 +152,7 @@ class DataObjectActor extends Actor with ActorLogging {
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
       countReq
-      log.info("Creating post " + form.content + " FROM USER " + owner + " TO " + target)
+      log.info("Creating post from user " + owner + " to user " + target)
       finalize(ctx, createPost(owner,target,form))
     case CreateAlbum(ctx, owner, form) =>
       countReq
@@ -238,7 +238,8 @@ class DataObjectActor extends Actor with ActorLogging {
       interested_in = form.interested_in,
       political = form.political,
       tz = form.tz,
-      status = "" // TODO: either remove this field or get some data
+      status = "", // TODO: either remove this field or get some data
+      public_key = form.public_key
     )
 
     // start with an empty friends list
@@ -283,7 +284,9 @@ class DataObjectActor extends Actor with ActorLogging {
     val ent = new PostEnt(id,
     owner = ownerId,
     target = targetId,
-    content = form.content
+    content = form.content,
+    key = form.key,
+    nonce = form.nonce
     )
 
     postMap += (id -> ent)

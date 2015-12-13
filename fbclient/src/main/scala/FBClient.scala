@@ -1,4 +1,6 @@
 import akka.actor._
+import java.security._
+import java.util.Base64
 
 object FBClient {
   def usage = {
@@ -47,5 +49,19 @@ object FBClient {
     implicit val system = ActorSystem("Facebook-System")
     val master = system.actorOf(Props(new Master()), "master")
     master ! InitMaster(numUsers, numPages, 1.0/loadFactor)
+
+    //testSec()
+  }
+
+  def testSec() = {
+    val rsa = new RSAhelper()
+    val r = rsa.generateKeys()
+    val pub_key = rsa.convertPublicKeyStr(r._1)
+    val priv_key = r._2
+    val aes = new AEShelper()
+    val msg = "This is the test message."
+    val triple = aes.encryptMessage(msg, pub_key)
+    val strRSA = aes.decryptMessage(triple._1, priv_key, triple._2, triple._3)
+    println(strRSA)
   }
 }
