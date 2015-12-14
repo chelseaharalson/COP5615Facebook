@@ -63,7 +63,7 @@ class RSAhelper {
   }
 
   def generateSignature(private_key : PrivateKey, text : String) : Array[Byte] = {
-    val signature = Signature.getInstance("SHA1withRSA")
+    val signature = Signature.getInstance("SHA256withRSA")
     signature.initSign(private_key, new SecureRandom())
     val data = text.getBytes()
     signature.update(data)
@@ -73,12 +73,12 @@ class RSAhelper {
   }
 
   def verifySignature(public_key : PublicKey, sigBytes : Array[Byte], text : String) : Boolean = {
-    val signature = Signature.getInstance("SHA1withRSA")
+    val signature = Signature.getInstance("SHA256withRSA")
     signature.initVerify(public_key)
     val data = text.getBytes()
     signature.update(data)
     val verifies = signature.verify(sigBytes)
-    //println("Signature verifies: " + verifies)
+    println("Signature verifies: " + verifies)
     verifies
   }
 
