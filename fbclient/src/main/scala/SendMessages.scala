@@ -1,5 +1,6 @@
 import java.io.File
 import java.security.PrivateKey
+import java.util.Base64
 import spray.http.{MediaTypes, BodyPart, MultipartFormData}
 import akka.actor.ActorSystem
 import akka.io.IO
@@ -59,7 +60,7 @@ object Network {
     }
   }
 
-  def addPost(uri : String, content : String, key : String, nonce : String) : Future[PostEnt] = {
+  def addPost(uri : String, content : String, key : String, nonce : String, digitalSig : String) : Future[PostEnt] = {
     implicit val timeout = Timeout(10.seconds)
     import system.dispatcher // execution context for futures
     import FacebookJsonSupport._
@@ -71,12 +72,12 @@ object Network {
       )
 
     val response: Future[PostEnt] =
-      pipeline(Post(uri, PostCreateForm(content, key, nonce)))
+      pipeline(Post(uri, PostCreateForm(content, key, nonce, digitalSig)))
 
     response
   }
 
-  def getPost(uri : String, private_key : PrivateKey) = {
+  def getPost(uri : String, private_key : PrivateKey, public_key : String) = {
     implicit val timeout = Timeout(10.seconds)
     import system.dispatcher // execution context for futures
     import FacebookJsonSupport._
@@ -93,8 +94,17 @@ object Network {
     response onComplete{
       case Success(ent) =>
         val aes = new AEShelper()
-        val decMsg = aes.decryptMessage(ent.content,private_key,ent.key,ent.nonce)
-        println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
+        val decMsg = aes.decryptMessage(ent.content, private_key, ent.key, ent.nonce)
+        val rsa = new RSAhelper()
+        val pub_key = rsa.getPublicKey(public_key)
+        val sig = Base64.getDecoder.decode(ent.digitalSig)
+        val verify = rsa.verifySignature(pub_key, sig, decMsg)
+        if (verify == true) {
+          println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
+        }
+        else {
+          println("Failed to verify digital signature")
+        }
 
       case Failure(e) =>
         println("Failed to get post!")

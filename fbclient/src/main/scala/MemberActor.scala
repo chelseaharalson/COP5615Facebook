@@ -1,4 +1,5 @@
 import java.security.PrivateKey
+import java.util.Base64
 import akka.actor.{ActorLogging, Actor, ActorSystem, Cancellable}
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -54,11 +55,18 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
         val aes = new AEShelper()
         val triple = aes.encryptMessage(post, pub_key)
 
+        // Generate digital signature
+        val rsa = new RSAhelper()
+        val r = rsa.generateKeys()
+        val public_key = rsa.convertPublicKeyStr(r._1)
+        val sig = rsa.generateSignature(r._2, post)
+        val str_sig = Base64.getEncoder.encodeToString(sig)
+
         import scala.concurrent.ExecutionContext.Implicits.global
-        Network.addPost(uri,triple._1,triple._2,triple._3) onComplete{
+        Network.addPost(uri, triple._1, triple._2, triple._3, str_sig) onComplete{
           case Success(postent) =>
             //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
-            context.actorSelection("../user" + s2) ! GetPost(postent.id)
+            context.actorSelection("../user" + s2) ! GetPost(postent.id, public_key)
 
           case Failure(e) =>
             println("Failed to add post!")
@@ -68,9 +76,9 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
       schedulePosting(rt * loadConfig)
     }
 
-    case GetPost(postId) => {
+    case GetPost(postId,public_key) => {
       val uri = Network.HostURI + "/post/" + postId.toString
-      Network.getPost(uri,private_key)
+      Network.getPost(uri, private_key, public_key)
       //println("Received " + postId.toString + "          " + ent.id.toString)
     }
 
@@ -106,13 +114,6 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
       self ! DoPost(userPost)
     }
   }
-
-  /*def scheduleGetPost(mili : Long) = {
-    import system.dispatcher
-    system.scheduler.scheduleOnce(mili milliseconds) {
-      self ! GetPost(new Identifier(22))
-    }
-  }*/
 
   def schedulePosting(mili : Double) : Unit = schedulePosting(mili.toLong)
 

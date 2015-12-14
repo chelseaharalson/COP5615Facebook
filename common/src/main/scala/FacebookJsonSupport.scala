@@ -152,15 +152,16 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
         "target" -> JsString(ent.target.toString),
         "content" -> ent.content.toJson,
         "key" -> ent.key.toJson,
-        "nonce" -> ent.nonce.toJson
+        "nonce" -> ent.nonce.toJson,
+        "digitalSig" -> ent.digitalSig.toJson
       ), ent)
     }
 
     def read(value : JsValue) = {
-      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content", "key", "nonce") match {
-        case Seq(id, modified_time, owner, target, JsString(content), JsString(key), JsString(nonce)) =>
+      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content", "key", "nonce", "digitalSig") match {
+        case Seq(id, modified_time, owner, target, JsString(content), JsString(key), JsString(nonce), JsString(digitalSig)) =>
           val ent = new PostEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
-            target.convertTo[Identifier], content, key, nonce
+            target.convertTo[Identifier], content, key, nonce, digitalSig
           )
           ent.modified_time = modified_time.convertTo[DateTime]
           ent
@@ -216,7 +217,7 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   // Forms JSON formats
   implicit val userFormFormat  = jsonFormat11(UserCreateForm)
   implicit val pageEntFormFormat = jsonFormat7(PageCreateForm)
-  implicit val postEntFormFormat = jsonFormat3(PostCreateForm)
+  implicit val postEntFormFormat = jsonFormat4(PostCreateForm)
   implicit val albumEntFormFormat = jsonFormat2(AlbumCreateForm)
   implicit val pictureFormFormat = jsonFormat2(PictureCreateForm)
 }
