@@ -54,7 +54,7 @@ object FBClient {
   }
 
   def testSec() = {
-    val rsa = new RSAhelper()
+    /*val rsa = new RSAhelper()
     val r = rsa.generateKeys()
     val pub_key = rsa.convertPublicKeyStr(r._1)
     val priv_key = r._2
@@ -62,13 +62,13 @@ object FBClient {
     val msg = "This is the test message."
     val triple = aes.encryptMessage(msg, pub_key)
     val strRSA = aes.decryptMessage(triple._1, priv_key, triple._2, triple._3)
-    println(strRSA)
+    println(strRSA)*/
 
-    /*val originalText = "Text to be encrypted "
+    val originalText = "Text to be encrypted "
     val rsa = new RSAhelper()
     val r = rsa.generateKeys()
     val pub = rsa.convertPublicKeyStr(r._1)
     val sig = rsa.generateSignature(r._2, originalText)
-    rsa.verifySignature(r._1, sig, originalText)*/
+    rsa.verifySignature(r._1, sig, originalText)
   }
 }

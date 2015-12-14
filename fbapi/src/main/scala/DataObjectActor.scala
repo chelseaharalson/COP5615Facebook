@@ -286,7 +286,8 @@ class DataObjectActor extends Actor with ActorLogging {
     target = targetId,
     content = form.content,
     key = form.key,
-    nonce = form.nonce
+    nonce = form.nonce,
+    digitalSig = form.digitalSig
     )
 
     postMap += (id -> ent)

@@ -78,7 +78,7 @@ class RSAhelper {
     val data = text.getBytes()
     signature.update(data)
     val verifies = signature.verify(sigBytes)
-    println("Signature verifies: " + verifies)
+    //println("Signature verifies: " + verifies)
     verifies
   }
 
