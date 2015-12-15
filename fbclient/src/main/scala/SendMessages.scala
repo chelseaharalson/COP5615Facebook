@@ -98,7 +98,7 @@ object Network {
         val rsa = new RSAhelper()
         val pub_key = rsa.getPublicKey(public_key)
         val sig = Base64.getDecoder.decode(ent.digitalSig)
-        val verify = rsa.verifySignature(pub_key, sig, decMsg)
+        val verify = rsa.verifySignature(pub_key, sig, ent.content)
         if (verify == true) {
           println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
         }

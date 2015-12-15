@@ -59,7 +59,7 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
         val rsa = new RSAhelper()
         val r = rsa.generateKeys()
         val public_key = rsa.convertPublicKeyStr(r._1)
-        val sig = rsa.generateSignature(r._2, post)
+        val sig = rsa.generateSignature(r._2, triple._1)
         val str_sig = Base64.getEncoder.encodeToString(sig)
 
         import scala.concurrent.ExecutionContext.Implicits.global
