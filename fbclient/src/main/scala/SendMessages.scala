@@ -11,6 +11,7 @@ import akka.util.Timeout
 import scala.concurrent.{Future, Await}
 import spray.can.Http
 import spray.http._
+import spray.json._
 import scala.util.{Failure, Success}
 
 case class AddFriend(myID : Identifier, friendID : Identifier)
@@ -60,19 +61,19 @@ object Network {
     }
   }
 
-  def addPost(uri : String, content : String, key : String, nonce : String, digitalSig : String) : Future[PostEnt] = {
+  def addPost(uri : String, content : String, key : String, nonce : String, digitalSig : String) : Future[KeyedEnt] = {
     implicit val timeout = Timeout(10.seconds)
     import system.dispatcher // execution context for futures
     import FacebookJsonSupport._
 
-    val pipeline: HttpRequest => Future[PostEnt] = (
+    val pipeline: HttpRequest => Future[KeyedEnt] = (
       addHeader("X-My-Special-Header", "fancy-value")
         ~> sendReceive
-        ~> unmarshal[PostEnt]
+        ~> unmarshal[KeyedEnt]
       )
 
-    val response: Future[PostEnt] =
-      pipeline(Post(uri, PostCreateForm(content, key, nonce, digitalSig)))
+    val response: Future[KeyedEnt] =
+      pipeline(Post(uri, PostCreateForm(content, KeyMaterial(key, nonce, digitalSig))))
 
     response
   }
@@ -82,32 +83,38 @@ object Network {
     import system.dispatcher // execution context for futures
     import FacebookJsonSupport._
 
-    val pipeline: HttpRequest => Future[PostEnt] = (
+    val pipeline: HttpRequest => Future[KeyedEnt] = (
       addHeader("X-My-Special-Header", "fancy-value")
         ~> sendReceive
-        ~> unmarshal[PostEnt]
+        ~> unmarshal[KeyedEnt]
       )
 
-    val response: Future[PostEnt] =
+    val response: Future[KeyedEnt] =
       pipeline(Get(uri))
 
     response onComplete{
-      case Success(ent) =>
+      case Success(KeyedEnt(fbent, key)) =>
         val aes = new AEShelper()
-        val decMsg = aes.decryptMessage(ent.content, private_key, ent.key, ent.nonce)
         val rsa = new RSAhelper()
+
+        val ent : PostEnt = fbent.asInstanceOf[PostEnt]
+
+        val decMsg = aes.decryptMessage(ent.content, private_key, key.key, key.nonce)
+
         val pub_key = rsa.getPublicKey(public_key)
-        val sig = Base64.getDecoder.decode(ent.digitalSig)
+        val sig = Base64.getDecoder.decode(key.sig)
         val verify = rsa.verifySignature(pub_key, sig, decMsg)
+
         if (verify == true) {
-          println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
+          println("**************** Decrypted Message: " + decMsg + " from user " + ent + " to " + ent.target)
+          println("The JSON: " + key.toJson.prettyPrint)
         }
         else {
           println("Failed to verify digital signature")
         }
 
       case Failure(e) =>
-        println("Failed to get post!")
+        println("Failed to get post: " + e.getMessage)
     }
   }
 

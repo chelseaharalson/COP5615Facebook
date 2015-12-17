@@ -5,14 +5,70 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{float}
+\usepackage{amsmath}
  
 \begin{document}
 
-\title{Project 4 - Facebook API and Simulator \\ COP5615, Fall 2015}
+\title{Project 4 - Secure Facebook API and Simulator \\ COP5615, Fall 2015}
  
 \author{Grant Hernandez and Chelsea Metcalf}
  
 \maketitle % this produces the title block
+
+\section*{Security Model}
+
+The entire goal of this project to remove the implicit trust in the server. To do this, clients never store plaintext data object on the server. They first encrypt all data objects with a unique key, encrypt the key with the target user's public key, and then transmit the (Key, Object) pair to the server.
+
+\subsection*{Trust Model}
+From the client's perspective, we trust the security of the machine that the client is running on. We also trust that the client is able to keep its private key a secret from everyone. The client also trusts that the client itself is free of backdoors and remotely exploitable bugs.
+
+The client trusts received public keys for users on first fetch. This public key is hashed and stored locally on the client in order to prevent public key man in the middle attacks orchestrated by the server.
+
+The client also assumes that the transport mechanism for packets to and from the server is secure and not being eavesdropped upon. This project does not require use of HTTPS, so it is possible for secret tokens/cookies to be captured in the clear. In a real project HTTPS would have to be enabled to ensure this trust.
+
+\subsection*{Threat Model}
+From the client, the primary threat in this security model is a full server database compromise. The server is not to be entrusted with the plaintext data for any object. It is assumed the server can and will modify and attempt to view all data stored on its system.
+
+\subsection*{Security Objects}
+The notation is as follows:
+\begin{align*}
+  P_k &\rightarrow \text{Asymmetric Public Key} \\
+  P_k^{-1} &\rightarrow \text{Asymmetric Private Key} \\
+  D_k &\rightarrow \text{Symmetric Data Object Key} \\
+  E(Key, Data) &\rightarrow \text{Encrypts $Data$ using $Key$} \\
+  D(Key, Data) &\rightarrow \text{Decrypts $Data$ using $Key$} \\
+  Sign(AsymKey, Data) &\rightarrow \text{Signs $Data$ using an Asymmetric Private Key, $AsymKey$} \\
+\end{align*}
+\subsubsection*{Client Objects}
+\begin{itemize}
+  \item Each and every client has a unique private key $P_k^{-1}$ and public key $P_k$. This key pair is generated on the client using RSA-2048 with secure random number generators. The private key never leaves the client's machine, but the public key is freely shared to the server. 
+
+  \item The client uses $P_k^{-1}$ to authenticate the data objects it creates and posts to the server through signing: $Sign(P_k^{-1}, Hash(Obj))$, where $Hash$ is a cryptographically secure random hash function.
+  \item It uses $P_k$ to encrypt symmetric keys, $D_k$, destined for a target user, $P_k$, or itself:
+    \begin{align*}
+      TargetPubKey &= P_k \\
+      ObjKey &= D_k \\
+      EncObjKey &= E(TargetPubKey, ObjKey) \\
+    \end{align*}
+  \item It uses $P_k^{-1}$ to decrypt data objects received from the server and destined for it: 
+    \begin{align*}
+      EncObjKey &= E(P_k, D_k) \\ 
+      ObjKey &= D(P_k^{-1}, EncObjKey) \\
+      Obj &= D(ObjKey, EncObj) \\
+    \end{align*}
+\end{itemize}
+
+\subsubsection*{Server Objects}
+The server must maintain a \texttt{Keychain} containing a Map of $Identifier \rightarrow KeyData$, where Identifier is a unique user ID and KeyData is an object containing the key material for that user (if authorized to view the object). \texttt{KeyData} is an object that stores the created time, expiry time, and the encrypted data key.
+
+In order to enforce basic object permission, each object has an Access Control List (ACL). The \texttt{FBACL} maintains information on the object owner and the permissions granted to other consumers of the object. For example, if the object permissions are ONLY\_ME then only the object owner is able to view and interact with the object.
+
+\subsection*{FAQ}
+\paragraph*{How are we validating a user's data without ever being able to read it?} If a certain field cannot contain commas, we are trusting the client to not put commas. Conversely, clients who can view stored data objects have to be trusted to correctly validate/display the data correctly, regardless of actual content. Given the security model, there is no possible way to validate the content on the server. The clients must know the format of the data and reject or transform any data not matching the expected format.
+  \paragraph*{How are previously trusted user's stripped of keys once they are no longer trusted (no longer friends)?} The only person who can modify the keys for a data object is the object creator. If Alice is initially friends with Bob, who shares a post with her, but then soon after defriends her, Alice's key to the post must be revoked. Revocation is impossible as Alice may have saved the key and post data for later inspection. This is analogous to saving a web page, so it is not of great concern. The server is trusted to perform correct Access Control List checks in order to prevent Alice from getting a fresh key and post data. The only case where this model would fail would be if the server is compromised and a database of online keys was used to decrypt stored data objects. One way to avoid this would be to rotate the objects key on a group membership change, or at a predefined interval, which ever comes first.
+\paragraph*{What happens if a server is compromised and all data objects are leaked?} The security model states that \emph{no key material is stored on the server}. All data objects are encrypted using secret keys available only to the clients. The objects are end-to-end encrypted and a server compromise would not expose their contents. However, all \emph{metadata} would be exposed, including friends lists, content size, content times, and so forth.
+\paragraph*{What happens if the server is compromised or the server operators maliciously replace data objects?} A server could maliciously replace a data object from Alice destined for Bob merely by encrypting a new object with Bob's public key. The server controls the metadata and cannot be trusted to keep accurate records. The defense to this attack would have Alice \emph{sign} all of her data objects using her private key in order to authenticate them.
+\paragraph*{What happens if the server maliciously replaces public keys for users?} In this security model, clients trust the server to maintain an accurate directory of user's public key. If the server operator or other third-party were to replace a stored public key for a user with their own, then they could man in the middle any data being sent. This becomes the TLS certificate validity problem, which is not solved. There are methods to help detect invalid public keys, such as Public Key Pinning on the client or something similar to Certificate Transparency. These solutions would only allow quick detection, but they each have their own advantages and disadvantages.
  
 \section*{Code Structure}
 

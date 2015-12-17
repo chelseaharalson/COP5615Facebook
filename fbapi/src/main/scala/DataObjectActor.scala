@@ -1,12 +1,19 @@
 import java.io._
 
-import akka.actor.{Cancellable, ActorLogging, Actor}
+import akka.actor.{Props, Cancellable, ActorLogging, Actor}
 import spray.routing.RequestContext
 import spray.http.StatusCodes._
 import spray.http.{StatusCode, StatusCodes}
 import scala.collection.mutable
 import FacebookJsonSupport._
 import scala.concurrent.duration._
+
+// Actor backend function calls
+case class Context(req : RequestContext, self : Identifier)
+case class Get(ctx : Context, id : Identifier)
+case class Create(ctx : Context, target : Identifier, data : Object)
+case class EntCreated(ctx : Context, id : Identifier, data : Create)
+case class EntKey(ctx : Context, id : Identifier, key : KeyMaterial)
 
 // Entity creation
 case class CreateUser(ctx : RequestContext, form : UserCreateForm)
@@ -36,8 +43,8 @@ case class GetPageList(ctx : RequestContext, uid : Identifier)
 case class PrintStats()
 case class StopServer()
 
+// Response wrapper
 class DataObjectActor extends Actor with ActorLogging {
-  // Response wrapper
   type FacebookResponse = (StatusCode, Object)
 
   // Count requests per second
@@ -48,10 +55,14 @@ class DataObjectActor extends Actor with ActorLogging {
   // Global ID counter
   var nextId = 0
 
+  val identService = context.actorOf(Props[IdentifierActor])
+  val keychainActor = context.actorOf(Props[KeychainActor])
+
   // [ Entity storage ]
-  var userMap = mutable.HashMap[Identifier, UserEnt]()
+  //var userMap = mutable.HashMap[Identifier, UserEnt]()
+  val userEntActor = context.actorOf(Props(new UserEntActor(context.self, identService, keychainActor)))
   var pageMap = mutable.HashMap[Identifier, PageEnt]()
-  var postMap = mutable.HashMap[Identifier, PostEnt]()
+  val postEntActor = context.actorOf(Props(new PostEntActor(identService, keychainActor)))
   var albumMap = mutable.HashMap[Identifier, AlbumEnt]()
   var pictureMap = mutable.HashMap[Identifier, PictureEnt]()
 
@@ -70,6 +81,7 @@ class DataObjectActor extends Actor with ActorLogging {
   var frequency = new FiniteDuration(1000, MILLISECONDS)
   var stopIn = new FiniteDuration(60000, MILLISECONDS)
   var firstCount = true // when to start collecting stats
+  val statsEnabled = false // kill switch for stats collection
 
   def runStats() {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -144,16 +156,18 @@ class DataObjectActor extends Actor with ActorLogging {
     // ################# Creation
     case CreateUser(ctx, form) =>
       countReq
-      log.info("Creating user " + form.first_name + " " + form.last_name)
-      finalize(ctx, createUser(form))
+      userEntActor ! Create(Context(ctx, new Identifier(0)), new Identifier(0), form)
+    case UserCreated(ctx, ent) =>
+      // start with an empty friends list
+      friendsList += (ent.id -> FriendsList(mutable.MutableList()))
+      ctx.req.complete(ent)
     case CreatePage(ctx, form) =>
       countReq
       log.info("Creating page " + form.description)
       finalize(ctx, createPage(form))
     case CreatePost(ctx, owner, target, form) =>
       countReq
-      log.info("Creating post from user " + owner + " to user " + target)
-      finalize(ctx, createPost(owner,target,form))
+      postEntActor ! Create(Context(ctx, owner), target, form)
     case CreateAlbum(ctx, owner, form) =>
       countReq
       log.info("Creating album " + form.name)
@@ -166,11 +180,8 @@ class DataObjectActor extends Actor with ActorLogging {
     // ################# Retrieval
     case GetUser(ctx, id) =>
       countReq
-      if (userExists(id)) {
-        ctx.complete(userById(id))
-      } else {
-        ctx.complete("Unknown User ID")
-      }
+      // XXX: WARNING USING ID FOR SELF
+      userEntActor ! Get(Context(ctx, id), id)
     case GetPage(ctx, id) =>
       countReq
       if (pageMap.contains(id)) {
@@ -180,11 +191,8 @@ class DataObjectActor extends Actor with ActorLogging {
       }
     case GetPost(ctx, id) =>
       countReq
-      if (postMap.contains(id)) {
-        ctx.complete(postMap{id})
-      } else {
-        ctx.complete("Unknown Post ID")
-      }
+      // XXX: WARNING USING ID FOR SELF
+      postEntActor ! Get(Context(ctx, id), id)
     case GetAlbum(ctx, id) =>
       countReq
       if (albumMap.contains(id)) {
@@ -218,37 +226,6 @@ class DataObjectActor extends Actor with ActorLogging {
     case _ => log.debug("Unknown message")
   }
 
-
-  /**
-    * Creates a new user with the specified form parameters and returns the resulting UserEnt
-    * @param form the user creation form
-    * @return FacebookResponse
-    */
-  def createUser(form : UserCreateForm) : FacebookResponse = {
-    val id = new Identifier(getNextId)
-
-    val ent = new UserEnt(id,
-      first_name = form.first_name,
-      last_name = form.last_name,
-      birthday = form.birthday,
-      gender = form.gender,
-      email = form.email,
-      about = form.about,
-      relationship_status = form.relationship_status,
-      interested_in = form.interested_in,
-      political = form.political,
-      tz = form.tz,
-      status = "", // TODO: either remove this field or get some data
-      public_key = form.public_key
-    )
-
-    // start with an empty friends list
-    friendsList += (id -> FriendsList(mutable.MutableList()))
-    userMap += (id -> ent)
-
-    (OK, ent)
-  }
-
   /**
     * Creates a new Facebook page
     * @param form the input form for the page
@@ -268,29 +245,6 @@ class DataObjectActor extends Actor with ActorLogging {
     )
 
     pageMap += (id -> ent)
-
-    (OK, ent)
-  }
-
-  /**
-    * Creates a post as `requester` to be placed on `target`'s wall
-    * `target` can be any object that as a wall (User or Page)
-    * @param form form with the post creation parameters
-    * @return FacebookResponse
-    */
-  def createPost(ownerId : Identifier, targetId : Identifier, form : PostCreateForm) : FacebookResponse = {
-    val id = new Identifier(getNextId)
-
-    val ent = new PostEnt(id,
-    owner = ownerId,
-    target = targetId,
-    content = form.content,
-    key = form.key,
-    nonce = form.nonce,
-    digitalSig = form.digitalSig
-    )
-
-    postMap += (id -> ent)
 
     (OK, ent)
   }
@@ -378,24 +332,13 @@ class DataObjectActor extends Actor with ActorLogging {
   ////////////////////////////////////////////////////////
 
   /**
-    * Gets a UserEnt by ID. The user ID must be valid
-    * @param id user ID
-    * @return UserEnt
-    */
-  def userById(id : Identifier) : UserEnt = {
-    if(!userExists(id))
-      throw new Exception("Invalid user id")
-
-    userMap.get(id).get
-  }
-
-  /**
     * Checks if a user ID is valid
     * @param id user ID
     * @return Boolean
     */
   def userExists(id : Identifier) : Boolean = {
-    userMap.contains(id)
+    // XXX: this should really query the UserEntActor
+    friendsList.contains(id)
   }
 
   /**
@@ -412,7 +355,7 @@ class DataObjectActor extends Actor with ActorLogging {
     * Counts a request for Stats collection
     */
   def countReq = {
-    if(firstCount) {
+    if(firstCount && statsEnabled) {
       firstCount = false
       runStats()
     }
