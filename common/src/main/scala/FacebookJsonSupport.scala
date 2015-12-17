@@ -242,12 +242,34 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  implicit object FacebookAlbumEntJsonFormat extends RootJsonFormat[FacebookEntity] {
+    def write(ent : FacebookEntity) = ent match {
+      case x : AlbumEnt =>
+        JsObject(
+          "type" -> FacebookEntityType.Album.toJson,
+          "entity" -> x.toJson
+        )
+      case _ => serializationError("Unsupported FacebookEntity type")
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("type", "entity") match {
+        case Seq(t, ent) =>
+          t.convertTo[FacebookEntityType.EntityType] match {
+            case FacebookEntityType.Album => ent.convertTo[AlbumEnt]
+            case _ => deserializationError("Unsupport FacebookEntity type")
+          }
+        case unk : Any => deserializationError("Invalid FacebookEntity format: " + unk.toString)
+      }
+    }
+  }
+
   // Forms JSON formats
   implicit val keyMaterialFormat = jsonFormat3(KeyMaterial)
   implicit val keyedEntFormat = jsonFormat2(KeyedEnt)
   implicit val userFormFormat  = jsonFormat11(UserCreateForm)
   implicit val pageEntFormFormat = jsonFormat7(PageCreateForm)
   implicit val postEntFormFormat = jsonFormat2(PostCreateForm)
-  implicit val albumEntFormFormat = jsonFormat2(AlbumCreateForm)
+  implicit val albumEntFormFormat = jsonFormat3(AlbumCreateForm)
   implicit val pictureFormFormat = jsonFormat2(PictureCreateForm)
 }

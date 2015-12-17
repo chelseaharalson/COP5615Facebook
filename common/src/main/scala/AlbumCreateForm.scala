@@ -1,1 +1,1 @@
-case class AlbumCreateForm(name : String, description : String)
+case class AlbumCreateForm(name : String, description : String, key : KeyMaterial)

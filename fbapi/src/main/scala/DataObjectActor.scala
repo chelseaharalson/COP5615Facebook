@@ -14,6 +14,7 @@ case class Get(ctx : Context, id : Identifier)
 case class Create(ctx : Context, target : Identifier, data : Object)
 case class EntCreated(ctx : Context, id : Identifier, data : Create)
 case class EntKey(ctx : Context, id : Identifier, key : KeyMaterial)
+case class CreateAlb(ctx : Context, data : Object)
 
 // Entity creation
 case class CreateUser(ctx : RequestContext, form : UserCreateForm)
@@ -65,6 +66,7 @@ class DataObjectActor extends Actor with ActorLogging {
   val postEntActor = context.actorOf(Props(new PostEntActor(identService, keychainActor)))
   var albumMap = mutable.HashMap[Identifier, AlbumEnt]()
   var pictureMap = mutable.HashMap[Identifier, PictureEnt]()
+  val albumEntActor = context.actorOf(Props(new AlbumEntActor(identService, keychainActor)))
 
   // [ Metadata storage ]
   // Stores the corresponding entity types for an identifier
@@ -170,8 +172,9 @@ class DataObjectActor extends Actor with ActorLogging {
       postEntActor ! Create(Context(ctx, owner), target, form)
     case CreateAlbum(ctx, owner, form) =>
       countReq
-      log.info("Creating album " + form.name)
-      finalize(ctx, createAlbum(owner, form))
+      //log.info("Creating album " + form.name)
+      //finalize(ctx, createAlbum(owner, form))
+      albumEntActor ! CreateAlb(Context(ctx, owner), form)
     case CreatePicture(ctx, albumId, form) =>
       countReq
       log.info("Creating picture " + form.caption)
@@ -195,11 +198,13 @@ class DataObjectActor extends Actor with ActorLogging {
       postEntActor ! Get(Context(ctx, id), id)
     case GetAlbum(ctx, id) =>
       countReq
-      if (albumMap.contains(id)) {
+      /*if (albumMap.contains(id)) {
         ctx.complete(albumMap{id})
       } else {
         ctx.complete("Unknown Album ID")
-      }
+      }*/
+      // XXX: WARNING USING ID FOR SELF
+      albumEntActor ! Get(Context(ctx, id), id)
     case GetPicture(ctx, id) =>
       countReq
       if (pictureMap.contains(id)) {
