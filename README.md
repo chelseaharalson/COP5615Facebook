@@ -2,6 +2,8 @@
 For University of Florida COP5615 (Fall 2015).
 By Chelsea Metcalf and Grant Hernandez.
 
+For security model, see Report-security.pdf.
+
 ## Usage
 
 SERVER:  
