@@ -10,19 +10,17 @@ class CryptoVerification extends Specification {
     val pub = rsa.convertPublicKeyStr(r._1)
     val sig = rsa.generateSignature(r._2, originalText)
 
-    "Return true" in {
+    "Correctly verify valid signatures" in {
       val verify = rsa.verifySignature(r._1, sig, originalText)
-      if (verify == false) println("Return true: FAILED")
-      ok
+      verify mustEqual true
     }
-    "Return false" in {
+    "Catch failures" in {
       val verify = rsa.verifySignature(r._1, sig, "This is corrupted text.")
-      if (verify == true) println("Return false: FAILED")
-      ok
+      verify mustEqual false
     }
   }
 
-  "Encrypting and decrypting successfully" should {
+  "Encrypting and decrypting" should {
     val rsa = new RSAhelper()
     val r = rsa.generateKeys()
     val pub_key = rsa.convertPublicKeyStr(r._1)
@@ -30,12 +28,12 @@ class CryptoVerification extends Specification {
     val aes = new AEShelper()
     val msg = "This is the test message."
 
-    "Success" in {
+    "Work" in {
       val triple = aes.encryptMessage(msg, pub_key)
       val strRSA = aes.decryptMessage(triple._1, priv_key, triple._2, triple._3)
-      println("Original Message: " + msg)
-      println("Encrypted Message: " + triple._1)
-      println("Decrypted Message: " + strRSA)
+      //println("Original Message: " + msg)
+      //println("Encrypted Message: " + triple._1)
+      //println("Decrypted Message: " + strRSA)
       ok
     }
   }
@@ -56,18 +54,13 @@ class CryptoVerification extends Specification {
     val digital_sig = RSA.generateSignature(r._2, triple._1)
     val str_sig = Base64.getEncoder.encodeToString(digital_sig)
 
-    "Success" in {
+    "Work" in {
       val decMsg = AES.decryptMessage(triple._1, private_key, triple._2, triple._3)
       val pub_key = RSA.getPublicKey(public_key)
       val sig = Base64.getDecoder.decode(str_sig)
       val verify = RSA.verifySignature(pub_key, sig, triple._1)
-      if (verify == true) {
-        println("**************** Decrypted Message: " + decMsg)
-      }
-      else {
-        println("Failed to verify digital signature")
-      }
-      ok
+
+      verify mustEqual true
     }
   }
 
