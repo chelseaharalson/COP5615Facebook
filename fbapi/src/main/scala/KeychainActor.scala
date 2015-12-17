@@ -15,7 +15,7 @@ class KeychainActor extends Actor with ActorLogging {
 
   def receive = {
     case CreateKey(objId, user, key) => ;
-      log.info(s"Creating key for ${objId} (user ${user})")
+      println(s"Creating KEY for ${objId} (user ${user}): " + key.key)
       createKey(objId, user, key)
 
       sender() ! KeychainSuccess()

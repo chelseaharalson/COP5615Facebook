@@ -108,7 +108,8 @@ object Network {
         val verify = rsa.verifySignature(pub_key, sig, ent.content)
 
         if (verify) {
-          println("**************** Decrypted Message: " + decMsg + " from user " + ent.id + " to " + ent.target)
+          println("User " + ent.owner + " to " + ent.target + ": " + decMsg)
+          //println("**************** Decrypted Message: " + decMsg + " from user " + ent.owner + " to " + ent.target)
         }
         else {
           println("Failed to verify digital signature")

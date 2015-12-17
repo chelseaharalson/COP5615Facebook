@@ -97,7 +97,7 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
       import scala.concurrent.ExecutionContext.Implicits.global
       Network.addPost(uri, encryptedPost, encryptedKey, base64Nonce, str_sig) onComplete{
         case Success(postent) =>
-          println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.entity.id + " to friend " + s2)
+          println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Post ID: " + postent.entity.id + " to friend " + s2 + " from user " + s1)
           //context.actorSelection("../user" + s2) ! GetPost(postent.entity.id, public_key)
 
           context.self ! GrantKey(postent.entity.id, friendList.friends(randFriend), aesKey, aesNonce, str_sig)
@@ -113,7 +113,7 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
 
       val uri = Network.HostURI + "/post/" + ent.id + "/" + postId.toString
       Network.getPost(uri, private_key, public_key)
-      println("@@@@@ GET POST " + postId.toString + "    AS      " + ent.id.toString)
+      println("@@@@@ Get Post " + postId.toString + " as user " + ent.first_name + " " + ent.last_name + " (" + ent.id + ")")
     }
 
     case DoAlbum(albumName,albumDescription) => {

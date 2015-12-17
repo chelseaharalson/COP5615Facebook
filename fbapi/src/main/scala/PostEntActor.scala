@@ -31,7 +31,7 @@ class PostEntActor(identService : ActorRef, keychain : ActorRef) extends Actor w
         content = post.content
       )
 
-      log.info("Creating post from user " + ctx.self + " to user " + create.target)
+      println("Creating post from user " + ctx.self + " to user " + create.target + " Content: " + post.content)
       postMap += (id -> ent)
 
       ctx.req.complete(OK, KeyedEnt(ent, post.key))

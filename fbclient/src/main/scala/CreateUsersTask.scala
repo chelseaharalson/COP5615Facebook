@@ -90,7 +90,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
       addMember(form) onComplete{
         case Success(ent) =>
           system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
-          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
+          GlobalInfo.addPublicKey(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
@@ -111,7 +111,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
       addMember(form) onComplete{
         case Success(ent) =>
           system.actorOf(Props(new MemberActor(ent, loadFactor, private_key)), "user" + ent.id)
-          GlobalInfo.keychain += new FriendInfo(ent.id, public_key)
+          GlobalInfo.addPublicKey(ent.id, public_key)
 
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
