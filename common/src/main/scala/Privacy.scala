@@ -1,6 +1,4 @@
-/**
- * Created by chelsea on 12/16/15.
- */
-class Privacy {
-
+object Privacy extends Enumeration {
+  type EnumVal = Value
+  val Friends, OnlyMe, Public = Value
 }
