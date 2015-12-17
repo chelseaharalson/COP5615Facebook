@@ -95,7 +95,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
         case Failure(e) =>
-          log.error("Failed to create user!")
+          log.error("Failed to create user: " + e.getMessage)
       }
     }
 
@@ -116,7 +116,7 @@ class CreateUsersTask(numUsers : Int, girlsToBoysRatio : Double, loadFactor : Do
           context.self ! UserCreated(ent)
           context.parent ! AddID(ent.id)
         case Failure(e) =>
-          log.error("Failed to create user!")
+          log.error("Failed to create user: " + e.getMessage)
       }
     }
   }

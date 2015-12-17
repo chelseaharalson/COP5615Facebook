@@ -145,11 +145,11 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
       }
     } ~
       pathPrefix("post") {
-        ObjectID { postId =>
+        ObjectID { me => ObjectID { postId =>
           get { ctx =>
-            objectActor ! GetPost(ctx, new Identifier(postId))
+            objectActor ! GetPost(ctx, new Identifier(me), new Identifier(postId))
           }
-        }
+        } }
       } ~
     pathPrefix("page") {
       ObjectID { pageId =>

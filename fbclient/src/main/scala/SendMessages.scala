@@ -99,15 +99,16 @@ object Network {
 
         val ent : PostEnt = fbent.asInstanceOf[PostEnt]
 
+        //println("The JSON: " + key.toJson.prettyPrint)
+
         val decMsg = aes.decryptMessage(ent.content, private_key, key.key, key.nonce)
 
         val pub_key = rsa.getPublicKey(public_key)
         val sig = Base64.getDecoder.decode(key.sig)
-        val verify = rsa.verifySignature(pub_key, sig, decMsg)
+        val verify = rsa.verifySignature(pub_key, sig, ent.content)
 
-        if (verify == true) {
-          println("**************** Decrypted Message: " + decMsg + " from user " + ent + " to " + ent.target)
-          println("The JSON: " + key.toJson.prettyPrint)
+        if (verify) {
+          println("**************** Decrypted Message: " + decMsg + " from user " + ent.id + " to " + ent.target)
         }
         else {
           println("Failed to verify digital signature")

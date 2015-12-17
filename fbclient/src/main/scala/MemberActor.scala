@@ -6,6 +6,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Random}
 //import scala.concurrent.ExecutionContext.Implicits.global
 
+
 class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey)(implicit system: ActorSystem) extends Actor with ActorLogging {
   var scheduler: Cancellable = _
 
@@ -39,45 +40,108 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
         schedulePicturePosting((randomTime + 30000) * loadConfig)
       }
     }
+    /*case GrantKey(id, friend) =>
+      val timePosted = System.currentTimeMillis()
 
+      // choose random friend to post to
+      val randFriend = Random.nextInt(friendList.friends.size-1)
+
+      val post : String = content
+
+      // get our ID and our friend's ID
+      val s1 = ent.id.toString
+      val s2 = friendList.friends(randFriend).toString
+
+      // get friends public key
+      val ourPublicKey = GlobalInfo.getPublicKey(friendList.friends(randFriend))
+
+      // we should have access to each person's public key
+      assert(!pub_key.equals(""))
+
+      // generate URL
+      val uri = Network.HostURI + "/user/" + s1 + "/post/" + s2
+
+      // 1. create new post
+      // 2. generate new AES key
+      // 3. encrypt post content with AES key
+      // 4. encrypt AES key with creator's public key (us)
+      // 5. sign post content with our private key
+      // 6. upload post content and encrypted key
+
+      val aes = new AEShelper()
+      val triple = aes.encryptMessage(post, pub_key)
+
+      // Generate digital signature
+      val rsa = new RSAhelper()
+      val public_key = rsa.convertPublicKeyStr(r._1)
+      val sig = rsa.generateSignature(p_private_key, post)
+      val str_sig = Base64.getEncoder.encodeToString(sig)
+
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Network.addPost(uri, triple._1, triple._2, triple._3, str_sig) onComplete{
+        case Success(postent) =>
+        //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
+        //context.actorSelection("../user" + s2) ! GetPost(postent.entity.id, public_key)
+
+        case Failure(e) =>
+          println("Failed to add post!")
+      }
+      val rt = Random.nextInt(60000)
+      schedulePosting(rt * loadConfig)*/
     case DoPost(content) => {
       val timePosted = System.currentTimeMillis()
-      val r = Random.nextInt(friendList.friends.size-1)
 
-      var post : String = content
-      post = content
+      val post : String = content
+
+      // choose random friend to post to
+      val randFriend = Random.nextInt(friendList.friends.size-1)
+
+      // get our ID and our friend's ID
       val s1 = ent.id.toString
-      val s2 = friendList.friends(r).toString
-      val pub_key = GlobalInfo.getPublicKey(friendList.friends(r))
-      if (!pub_key.equals("")) {
-        val uri = Network.HostURI + "/user/"+s1+"/post/"+s2
+      val s2 = friendList.friends(randFriend).toString
 
-        val aes = new AEShelper()
-        val triple = aes.encryptMessage(post, pub_key)
+      // our public key
+      val ourPublicKey = GlobalInfo.getPublicKey(ent.id)
 
-        // Generate digital signature
-        val rsa = new RSAhelper()
-        val r = rsa.generateKeys()
-        val public_key = rsa.convertPublicKeyStr(r._1)
-        val sig = rsa.generateSignature(r._2, triple._1)
-        val str_sig = Base64.getEncoder.encodeToString(sig)
+      // we should have access to our pub key
+      assert(!ourPublicKey.equals(""))
 
-        import scala.concurrent.ExecutionContext.Implicits.global
-        Network.addPost(uri, triple._1, triple._2, triple._3, str_sig) onComplete{
-          case Success(postent) =>
-            //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
-            context.actorSelection("../user" + s2) ! GetPost(postent.entity.id, public_key)
+      // generate URL
+      val uri = Network.HostURI + "/user/" + s1 + "/post/" + s2
 
-          case Failure(e) =>
-            println("Failed to add post: " + e.getMessage)
-        }
+      // 1. create new post
+      // 2. generate new AES key
+      // 3. encrypt post content with AES key
+      // 4. encrypt AES key with creator's public key (us)
+      // 5. sign post content with our private key
+      // 6. upload post content and encrypted key
+
+      val aes = new AEShelper()
+      val (aesKey, aesNonce) = aes.generateKey()
+
+      val (encryptedPost, encryptedKey, base64Nonce) = aes.encryptMessage(aesKey, aesNonce, post, ourPublicKey)
+
+      // Generate digital signature
+      val rsa = new RSAhelper()
+      val public_key = rsa.getPublicKey(ourPublicKey)
+      val postSignature = rsa.generateSignature(p_private_key, encryptedPost)
+      val str_sig = Base64.getEncoder.encodeToString(postSignature)
+
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Network.addPost(uri, encryptedPost, encryptedKey, base64Nonce, str_sig) onComplete{
+        case Success(postent) =>
+          //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
+          //context.actorSelection("../user" + s2) ! GetPost(postent.entity.id, public_key)
+          context.self ! GetPost(postent.entity.id, ourPublicKey)
+        case Failure(e) =>
+          println("Failed to add post: " + e.getMessage)
       }
       val rt = Random.nextInt(60000)
       schedulePosting(rt * loadConfig)
     }
 
     case GetPost(postId,public_key) => {
-      val uri = Network.HostURI + "/post/" + postId.toString
+      val uri = Network.HostURI + "/post/" + ent.id + "/" + postId.toString
       Network.getPost(uri, private_key, public_key)
       //println("Received " + postId.toString + "          " + ent.id.toString)
     }
