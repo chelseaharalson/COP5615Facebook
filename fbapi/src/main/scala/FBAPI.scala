@@ -14,8 +14,6 @@ object FBAPI {
       hostname = args(0)
     }
 
-    println(KeyedEnt(new PostEnt, KeyMaterial("thekey", "thenonce", "thesig")).toJson.prettyPrint)
-
     // bind to the host:port
     system.actorOf(Props(new HttpBinder(hostname, port)), "http-binder")
   }

@@ -32,6 +32,7 @@ case class GetEntOfType(ctx : RequestContext, id : Identifier, objType : Faceboo
 
 // Actions
 case class AddFriend(ctx : RequestContext, requester : Identifier, target : Identifier)
+case class AddKey(ctx : RequestContext, user : Identifier, obj : Identifier, friend : Identifier, key : KeyMaterial)
 
 // Queries
 case class GetFriendsList(ctx : RequestContext, uid : Identifier)
@@ -213,7 +214,9 @@ class DataObjectActor extends Actor with ActorLogging {
       countReq
       //log.info(s"Adding friend $requester <-> $target")
       finalize(ctx, addFriend(requester, target))
-
+    case AddKey(ctx, user, obj, friend, key) =>
+      keychainActor ! CreateKey(obj, friend, key)
+      finalize(ctx, (OK, ""))
     // ################# Queries
     case GetFriendsList(ctx, uid) =>
       countReq

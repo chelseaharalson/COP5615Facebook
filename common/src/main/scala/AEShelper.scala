@@ -49,9 +49,10 @@ class AEShelper {
 
     val strAESkey = Base64.getEncoder.encodeToString(key.getEncoded)
 
-    val rsa = new RSAhelper()
-    val RSA_AES_KEY = rsa.encrypt(strAESkey, rsa.getPublicKey(public_key))
-    val str_RSA_AES_KEY = Base64.getEncoder.encodeToString(RSA_AES_KEY)
+    val str_RSA_AES_KEY = encryptKey(key, public_key)
+    //val rsa = new RSAhelper()
+    //val RSA_AES_KEY = rsa.encrypt(strAESkey, rsa.getPublicKey(public_key))
+    //val str_RSA_AES_KEY = Base64.getEncoder.encodeToString(RSA_AES_KEY)
 
     val str_AESnonce = Base64.getEncoder.encodeToString(nonce)
 
@@ -60,6 +61,12 @@ class AEShelper {
     //println("Key: " + key.getEncoded)
 
     (encryptedMsg, str_RSA_AES_KEY, str_AESnonce)
+  }
+
+  def encryptKey(key : SecretKey, public_key : String) : String = {
+    val rsa = new RSAhelper()
+    val encKey = rsa.encrypt(Base64.getEncoder.encodeToString(key.getEncoded), rsa.getPublicKey(public_key))
+    Base64.getEncoder.encodeToString(encKey)
   }
 
   def encryptMessage(message : String, public_key : String) : (String, String, String) = {

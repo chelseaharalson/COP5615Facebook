@@ -124,6 +124,18 @@ class API extends Actor with HttpService with StatefulSessionManagerDirectives[I
         }
       }
     } ~
+    pathPrefix("key") {
+      ObjectID { id =>
+        path("add" / FBID / FBID) { (obj, friend) =>
+          post {
+            entity(as[KeyMaterial]) { key => ctx =>
+              objectActor ! AddKey(ctx, new Identifier(id), new Identifier(obj),
+                new Identifier(friend), key)
+            }
+          }
+        }
+      }
+    } ~
     pathPrefix("profile") {
       ObjectID { id =>
         get {

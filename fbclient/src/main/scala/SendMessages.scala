@@ -119,6 +119,25 @@ object Network {
     }
   }
 
+  def addKey(uid : Identifier, obj : Identifier, friend : Identifier, mat : KeyMaterial) = {
+    implicit val timeout = Timeout(10.seconds)
+    import system.dispatcher // execution context for futures
+    import FacebookJsonSupport._
+
+    val uri = Network.HostURI + "/key/" + uid + "/add/" + obj + "/" + friend
+
+    val pipeline  = (
+      addHeader("X-My-Special-Header", "fancy-value")
+        ~> sendReceive
+        //~> unmarshal[KeyedEnt]
+      )
+
+    val response =
+      pipeline(Post(uri, mat))
+
+    response
+  }
+
   def addAlbum(uri : String, name : String, description : String) : Future[AlbumEnt] = {
     implicit val timeout = Timeout(10.seconds)
     import system.dispatcher // execution context for futures
