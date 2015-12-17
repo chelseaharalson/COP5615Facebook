@@ -25,13 +25,14 @@ case class CreatePicture(ctx : RequestContext, albumId : Identifier, form : Pict
 // Entity retrieval
 case class GetUser(ctx : RequestContext, id : Identifier)
 case class GetPage(ctx : RequestContext, id : Identifier)
-case class GetPost(ctx : RequestContext, id : Identifier)
+case class GetPost(ctx : RequestContext, user : Identifier, id : Identifier)
 case class GetAlbum(ctx : RequestContext, id : Identifier)
 case class GetPicture(ctx : RequestContext, id : Identifier)
 case class GetEntOfType(ctx : RequestContext, id : Identifier, objType : FacebookEntityType.EntityType)
 
 // Actions
 case class AddFriend(ctx : RequestContext, requester : Identifier, target : Identifier)
+case class AddKey(ctx : RequestContext, user : Identifier, obj : Identifier, friend : Identifier, key : KeyMaterial)
 
 // Queries
 case class GetFriendsList(ctx : RequestContext, uid : Identifier)
@@ -180,6 +181,7 @@ class DataObjectActor extends Actor with ActorLogging {
     // ################# Retrieval
     case GetUser(ctx, id) =>
       countReq
+
       // XXX: WARNING USING ID FOR SELF
       userEntActor ! Get(Context(ctx, id), id)
     case GetPage(ctx, id) =>
@@ -189,10 +191,9 @@ class DataObjectActor extends Actor with ActorLogging {
       } else {
         ctx.complete("Unknown Page ID")
       }
-    case GetPost(ctx, id) =>
+    case GetPost(ctx, userid, id) =>
       countReq
-      // XXX: WARNING USING ID FOR SELF
-      postEntActor ! Get(Context(ctx, id), id)
+      postEntActor ! Get(Context(ctx, userid), id)
     case GetAlbum(ctx, id) =>
       countReq
       if (albumMap.contains(id)) {
@@ -213,7 +214,9 @@ class DataObjectActor extends Actor with ActorLogging {
       countReq
       //log.info(s"Adding friend $requester <-> $target")
       finalize(ctx, addFriend(requester, target))
-
+    case AddKey(ctx, user, obj, friend, key) =>
+      keychainActor ! CreateKey(obj, friend, key)
+      finalize(ctx, (OK, ""))
     // ################# Queries
     case GetFriendsList(ctx, uid) =>
       countReq

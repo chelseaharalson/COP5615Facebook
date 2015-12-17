@@ -22,6 +22,8 @@ class AEShelper {
   }
 
   def AESencrypt(key : SecretKey, nonce : Array[Byte], input : String) : Array[Byte] = {
+    assert(nonce.length == GCM_NONCE_LENGTH)
+
     val spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, nonce)
     cipher.init(Cipher.ENCRYPT_MODE, key, spec)
     val cipherText = cipher.doFinal(input.getBytes())
@@ -30,6 +32,8 @@ class AEShelper {
   }
 
   def AESdecrypt(key : SecretKey, nonce : Array[Byte], cipherText : Array[Byte]) : String = {
+    assert(nonce.length == GCM_NONCE_LENGTH)
+
     val spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, nonce)
     cipher.init(Cipher.DECRYPT_MODE, key, spec)
     val plainText = cipher.doFinal(cipherText)
@@ -37,29 +41,49 @@ class AEShelper {
     new String(plainText)
   }
 
-  def encryptMessage(message : String, public_key : String) : (String, String, String) = {
-    val AESkey = generateKey()._1
-    val AESnonce = generateKey()._2
-
-    val e = AESencrypt(AESkey, AESnonce, message)
+  // allows key to be passed in
+  def encryptMessage(key : SecretKey, nonce : Array[Byte],
+                     message : String, public_key : String) : (String, String, String) = {
+    val e = AESencrypt(key, nonce, message)
     val encryptedMsg = Base64.getEncoder.encodeToString(e)
 
-    val strAESkey = Base64.getEncoder.encodeToString(AESkey.getEncoded())
+    val strAESkey = Base64.getEncoder.encodeToString(key.getEncoded)
 
-    val rsa = new RSAhelper()
-    val RSA_AES_KEY = rsa.encrypt(strAESkey, rsa.getPublicKey(public_key))
-    val str_RSA_AES_KEY = Base64.getEncoder.encodeToString(RSA_AES_KEY)
+    val str_RSA_AES_KEY = encryptKey(key, public_key)
+    //val rsa = new RSAhelper()
+    //val RSA_AES_KEY = rsa.encrypt(strAESkey, rsa.getPublicKey(public_key))
+    //val str_RSA_AES_KEY = Base64.getEncoder.encodeToString(RSA_AES_KEY)
 
-    val str_AESnonce = Base64.getEncoder.encodeToString(AESnonce)
+    val str_AESnonce = Base64.getEncoder.encodeToString(nonce)
+
+    //println("Nonce: " + str_AESnonce)
+    //println("Msg: " + encryptedMsg)
+    //println("Key: " + key.getEncoded)
 
     (encryptedMsg, str_RSA_AES_KEY, str_AESnonce)
+  }
+
+  def encryptKey(key : SecretKey, public_key : String) : String = {
+    val rsa = new RSAhelper()
+    val encKey = rsa.encrypt(Base64.getEncoder.encodeToString(key.getEncoded), rsa.getPublicKey(public_key))
+    Base64.getEncoder.encodeToString(encKey)
+  }
+
+  def encryptMessage(message : String, public_key : String) : (String, String, String) = {
+    val aesKeyMaterial = generateKey()
+    val key = aesKeyMaterial._1
+    val nonce = aesKeyMaterial._2
+
+    encryptMessage(key, nonce, message, public_key)
   }
 
   def decryptMessage(message : String, private_key : PrivateKey, rsa_pub_key : String, nonce : String) : String = {
     val byteNonce = Base64.getDecoder.decode(nonce)
     val byteMessage = Base64.getDecoder.decode(message)
     val rsa = new RSAhelper()
+
     val byte_rsa_pub = Base64.getDecoder.decode(rsa_pub_key)
+
     val str_aes_key = rsa.decrypt(byte_rsa_pub, private_key)
     val aes_key = getSecretKey(str_aes_key)
     val str_msg = AESdecrypt(aes_key, byteNonce, byteMessage)
@@ -68,6 +92,7 @@ class AEShelper {
 
   def getSecretKey(string_key : String) : SecretKey = {
     val encodedKey = Base64.getDecoder.decode(string_key)
+    //val keyBytes = string_key.getBytes()
     val originalKey = new SecretKeySpec(encodedKey, 0, encodedKey.length, "AES")
     originalKey
   }
