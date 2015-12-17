@@ -66,10 +66,10 @@ class MemberActor(ent : UserEnt, loadConfig : Double, p_private_key : PrivateKey
         Network.addPost(uri, triple._1, triple._2, triple._3, str_sig) onComplete{
           case Success(postent) =>
             //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ POST ID: " + postent.id + " to friend " + s2)
-            context.actorSelection("../user" + s2) ! GetPost(postent.id, public_key)
+            context.actorSelection("../user" + s2) ! GetPost(postent.entity.id, public_key)
 
           case Failure(e) =>
-            println("Failed to add post!")
+            println("Failed to add post: " + e.getMessage)
         }
       }
       val rt = Random.nextInt(60000)

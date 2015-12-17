@@ -61,6 +61,15 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  implicit object FacebookEntityTypeJsonFormat extends JsonFormat[FacebookEntityType.EntityType] {
+    def write(t : FacebookEntityType.EntityType) = JsString(t.toString)
+
+    def read(value: JsValue) = value match {
+      case JsString(a) => FacebookEntityType withName a
+      case _ => deserializationError("FacebookEntityType string expected")
+    }
+  }
+
   ///////////////////////////////////////////////////
 
   /**
@@ -150,18 +159,15 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
       annotate(JsObject(
         "owner" -> JsString(ent.owner.toString),
         "target" -> JsString(ent.target.toString),
-        "content" -> ent.content.toJson,
-        "key" -> ent.key.toJson,
-        "nonce" -> ent.nonce.toJson,
-        "digitalSig" -> ent.digitalSig.toJson
+        "content" -> ent.content.toJson
       ), ent)
     }
 
     def read(value : JsValue) = {
-      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content", "key", "nonce", "digitalSig") match {
-        case Seq(id, modified_time, owner, target, JsString(content), JsString(key), JsString(nonce), JsString(digitalSig)) =>
+      value.asJsObject.getFields("id", "modified_time", "owner", "target", "content") match {
+        case Seq(id, modified_time, owner, target, JsString(content)) =>
           val ent = new PostEnt(id.convertTo[Identifier], owner.convertTo[Identifier],
-            target.convertTo[Identifier], content, key, nonce, digitalSig
+            target.convertTo[Identifier], content
           )
           ent.modified_time = modified_time.convertTo[DateTime]
           ent
@@ -214,10 +220,34 @@ object FacebookJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     }
   }
 
+  implicit object FacebookEntJsonFormat extends RootJsonFormat[FacebookEntity] {
+    def write(ent : FacebookEntity) = ent match {
+      case x : PostEnt =>
+        JsObject(
+          "type" -> FacebookEntityType.Post.toJson,
+          "entity" -> x.toJson
+          )
+      case _ => serializationError("Unsupported FacebookEntity type")
+    }
+
+    def read(value : JsValue) = {
+      value.asJsObject.getFields("type", "entity") match {
+        case Seq(t, ent) =>
+          t.convertTo[FacebookEntityType.EntityType] match {
+            case FacebookEntityType.Post => ent.convertTo[PostEnt]
+            case _ => deserializationError("Unsupport FacebookEntity type")
+          }
+        case unk : Any => deserializationError("Invalid FacebookEntity format: " + unk.toString)
+      }
+    }
+  }
+
   // Forms JSON formats
+  implicit val keyMaterialFormat = jsonFormat3(KeyMaterial)
+  implicit val keyedEntFormat = jsonFormat2(KeyedEnt)
   implicit val userFormFormat  = jsonFormat11(UserCreateForm)
   implicit val pageEntFormFormat = jsonFormat7(PageCreateForm)
-  implicit val postEntFormFormat = jsonFormat4(PostCreateForm)
+  implicit val postEntFormFormat = jsonFormat2(PostCreateForm)
   implicit val albumEntFormFormat = jsonFormat2(AlbumCreateForm)
   implicit val pictureFormFormat = jsonFormat2(PictureCreateForm)
 }

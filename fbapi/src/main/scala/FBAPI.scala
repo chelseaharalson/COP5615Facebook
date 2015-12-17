@@ -1,12 +1,7 @@
 import akka.actor.{ActorSystem, Props}
-import akka.io.IO
-import spray.can.Http
-import akka.pattern.ask
-import akka.util.Timeout
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 
-import ExecutionContext.Implicits.global
+import FacebookJsonSupport._
+import spray.json._
 
 object FBAPI {
   def main(args: Array[String]): Unit = {
@@ -18,6 +13,8 @@ object FBAPI {
     if (args.length >= 1) {
       hostname = args(0)
     }
+
+    println(KeyedEnt(new PostEnt, KeyMaterial("thekey", "thenonce", "thesig")).toJson.prettyPrint)
 
     // bind to the host:port
     system.actorOf(Props(new HttpBinder(hostname, port)), "http-binder")
